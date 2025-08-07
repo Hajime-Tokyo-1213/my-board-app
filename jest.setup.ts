@@ -2,7 +2,7 @@ import '@testing-library/jest-dom'
 import { TextEncoder, TextDecoder } from 'util'
 
 // Text encoding/decoding for Node.js environment
-global.TextEncoder = TextEncoder
+global.TextEncoder = TextEncoder as any
 global.TextDecoder = TextDecoder as any
 
 // Request/Response polyfills for Next.js API routes
