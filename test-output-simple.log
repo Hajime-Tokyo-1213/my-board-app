@@ -1,0 +1,53 @@
+
+> my-board-app@0.1.0 test
+> jest --config jest.config.simple.js
+
+PASS src/__tests__/simple.test.ts
+FAIL src/__tests__/lib/mongodb.test.ts
+  ● Test suite failed to run
+
+    Please define the MONGODB_URI environment variable inside .env.local
+
+      12 |
+      13 | if (!MONGODB_URI) {
+    > 14 |   throw new Error(
+         |         ^
+      15 |     'Please define the MONGODB_URI environment variable inside .env.local'
+      16 |   );
+      17 | }
+
+      at Object.<anonymous> (src/lib/mongodb.ts:14:9)
+      at Object.<anonymous> (src/__tests__/lib/mongodb.test.ts:13:57)
+
+FAIL src/__tests__/api/posts.test.ts
+  ● Test suite failed to run
+
+    Cannot find module '../../app/api/posts/route' from 'src/__tests__/api/posts.test.ts'
+
+       7 | jest.mock('@/lib/mongodb');
+       8 | jest.mock('@/models/Post');
+    >  9 |
+         | ^
+      10 | describe('/api/posts', () => {
+      11 |   const mockDbConnect = dbConnect as jest.MockedFunction<typeof dbConnect>;
+      12 |   const mockPost = Post as jest.Mocked<typeof Post>;
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/__tests__/api/posts.test.ts:9:16)
+
+FAIL src/__tests__/api/posts-id.test.ts
+  ● Test suite failed to run
+
+    Cannot find module '../../app/api/posts/[id]/route' from 'src/__tests__/api/posts-id.test.ts'
+
+       7 | jest.mock('@/lib/mongodb');
+       8 | jest.mock('@/models/Post');
+    >  9 |
+         | ^
+      10 | describe('/api/posts/[id]', () => {
+      11 |   const mockDbConnect = dbConnect as jest.MockedFunction<typeof dbConnect>;
+      12 |   const mockPost = Post as jest.Mocked<typeof Post>;
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (src/__tests__/api/posts-id.test.ts:9:16)
+
