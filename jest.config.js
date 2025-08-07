@@ -13,7 +13,7 @@ const customJestConfig = {
   testEnvironmentOptions: {
     customExportConditions: ['node', 'node-addons'],
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/models/(.*)$': '<rootDir>/src/models/$1',
     '^@/(.*)$': '<rootDir>/src/$1',

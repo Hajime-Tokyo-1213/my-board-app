@@ -1,19 +1,14 @@
 import '@testing-library/jest-dom'
-import { TextEncoder, TextDecoder } from 'util'
+const { TextEncoder, TextDecoder } = require('util')
 
 // Text encoding/decoding for Node.js environment
-;(global as any).TextEncoder = TextEncoder
-;(global as any).TextDecoder = TextDecoder
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
 
 // Request/Response polyfills for Next.js API routes
 if (typeof global.Request === 'undefined') {
   global.Request = class Request {
-    url: string
-    method: string
-    headers: Headers
-    private _body: any
-
-    constructor(input: string | Request, init?: RequestInit) {
+    constructor(input, init) {
       if (typeof input === 'string') {
         this.url = input
       } else {
@@ -37,17 +32,12 @@ if (typeof global.Request === 'undefined') {
       }
       return JSON.stringify(this._body)
     }
-  } as any
+  }
 }
 
 if (typeof global.Response === 'undefined') {
   global.Response = class Response {
-    body: any
-    status: number
-    statusText: string
-    headers: Headers
-
-    constructor(body?: any, init?: ResponseInit) {
+    constructor(body, init) {
       this.body = body
       this.status = init?.status || 200
       this.statusText = init?.statusText || 'OK'
@@ -67,14 +57,12 @@ if (typeof global.Response === 'undefined') {
       }
       return JSON.stringify(this.body)
     }
-  } as any
+  }
 }
 
 if (typeof global.Headers === 'undefined') {
   global.Headers = class Headers {
-    private headers: Map<string, string>
-
-    constructor(init?: HeadersInit) {
+    constructor(init) {
       this.headers = new Map()
       if (init) {
         if (Array.isArray(init)) {
@@ -93,18 +81,18 @@ if (typeof global.Headers === 'undefined') {
       }
     }
 
-    get(key: string) {
+    get(key) {
       return this.headers.get(key.toLowerCase()) || null
     }
 
-    set(key: string, value: string) {
+    set(key, value) {
       this.headers.set(key.toLowerCase(), value)
     }
 
-    forEach(callback: (value: string, key: string) => void) {
+    forEach(callback) {
       this.headers.forEach(callback)
     }
-  } as any
+  }
 }
 
 // Mock Next.js router
@@ -145,7 +133,7 @@ Object.defineProperty(window, 'matchMedia', {
 // Suppress console errors in tests
 const originalError = console.error
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args) => {
     if (
       typeof args[0] === 'string' &&
       args[0].includes('Warning: ReactDOM.render')

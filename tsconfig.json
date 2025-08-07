@@ -29,7 +29,7 @@
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "jest.setup.ts",
+    "jest.setup.js",
     "jest.setup.api.ts",
     "jest.config.js",
     "jest.env.js",
