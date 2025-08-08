@@ -1,28 +1,26 @@
-import mongoose, { Mongoose } from 'mongoose';
+import mongoose from 'mongoose';
 
 // Mongooseのグローバルな型定義を拡張
 declare global {
-  var mongoose: {
-    conn: Mongoose | null;
-    promise: Promise<Mongoose> | null;
-  } | undefined;
+  var mongoose: any; // `var` を使用してグローバルスコープに宣言
 }
 
-const cached = global.mongoose || { conn: null, promise: null };
 
-if (!global.mongoose) {
-  global.mongoose = cached;
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  throw new Error(
+    'MONGODB_URI is not set. Define it in Vercel Environment Variables (Production/Preview/Development) or .env.local for local dev.'
+  );
 }
 
-async function dbConnect(): Promise<Mongoose> {
-  const MONGODB_URI = process.env.MONGODB_URI;
+let cached = global.mongoose;
 
-  if (!MONGODB_URI) {
-    throw new Error(
-      'Please define the MONGODB_URI environment variable inside .env.local'
-    );
-  }
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
+async function dbConnect() {
   if (cached.conn) {
     return cached.conn;
   }
@@ -32,9 +30,10 @@ async function dbConnect(): Promise<Mongoose> {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts);
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+      return mongoose;
+    });
   }
-  
   try {
     cached.conn = await cached.promise;
   } catch (e) {
@@ -45,4 +44,5 @@ async function dbConnect(): Promise<Mongoose> {
   return cached.conn;
 }
 
+export default dbConnect;
 export default dbConnect;

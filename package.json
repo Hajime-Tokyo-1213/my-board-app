@@ -29,7 +29,7 @@
     "clean:deps": "rm -rf node_modules package-lock.json && npm install",
     "verify": "npm run lint && npm run typecheck && npm run test:coverage",
     "precommit": "npm run lint && npm run typecheck && npm test",
-    "prepare": "husky || true"
+    "prepare": "if [ -x ./node_modules/.bin/husky ]; then husky; fi"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
