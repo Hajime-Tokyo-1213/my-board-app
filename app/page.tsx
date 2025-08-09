@@ -31,7 +31,8 @@ export default function Home() {
       if (data.success) {
         setPosts(data.data);
       } else {
-        setError('投稿の取得に失敗しました');
+        console.error('API Error Details:', data);
+        setError(`投稿の取得に失敗しました: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Failed to fetch posts:', err);

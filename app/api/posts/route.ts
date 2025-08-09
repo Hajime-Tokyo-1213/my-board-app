@@ -14,10 +14,19 @@ export async function GET() {
     return NextResponse.json({ success: true, data: posts });
   } catch (error) {
     console.error('Detailed error in GET /api/posts:', error);
+    
+    // 詳細なエラー情報を返す（本番環境でも一時的にデバッグ用）
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      env: process.env.VERCEL ? 'vercel' : 'local',
+      mongoUri: process.env.MONGODB_URI ? 'SET' : 'NOT_SET'
+    };
+    
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to fetch posts',
-      details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      debug: errorDetails
     }, { status: 500 });
   }
 }
@@ -44,10 +53,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: post }, { status: 201 });
   } catch (error) {
     console.error('Detailed error in POST /api/posts:', error);
+    
+    // 詳細なエラー情報を返す（本番環境でも一時的にデバッグ用）
+    const errorDetails = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      env: process.env.VERCEL ? 'vercel' : 'local',
+      mongoUri: process.env.MONGODB_URI ? 'SET' : 'NOT_SET'
+    };
+    
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to create post',
-      details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      debug: errorDetails
     }, { status: 500 });
   }
 }
