@@ -5,6 +5,15 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import ProfileView from './ProfileView';
 
+interface UserDocument {
+  _id: any;
+  email: string;
+  name: string;
+  bio?: string;
+  emailVerified: Date | null;
+  createdAt: Date;
+}
+
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   
@@ -16,7 +25,7 @@ export default async function ProfilePage() {
   
   const user = await User.findOne({ email: session.user.email })
     .select('-password -verificationToken -resetPasswordToken -resetPasswordExpires')
-    .lean();
+    .lean() as UserDocument | null;
 
   if (!user) {
     redirect('/auth/signin');

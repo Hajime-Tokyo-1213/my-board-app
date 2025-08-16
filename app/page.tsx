@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,7 +10,6 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Button,
   Pagination,
   Chip,
   AppBar,
@@ -18,7 +17,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Avatar,
 } from '@mui/material';
 import {
   AccountCircle,
@@ -70,7 +68,7 @@ export default function Home() {
     }
   }, [status, router]);
 
-  const fetchPosts = async (page: number = 1) => {
+  const fetchPosts = useCallback(async (page: number = 1) => {
     try {
       const response = await fetch(`/api/posts?page=${page}&limit=10`);
       if (response.status === 401) {
@@ -90,13 +88,13 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetchPosts(currentPage);
     }
-  }, [status, currentPage]);
+  }, [status, currentPage, fetchPosts]);
 
   const handleCreatePost = async (title: string, content: string) => {
     try {

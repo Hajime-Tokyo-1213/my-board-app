@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     // ユーザー作成
-    const user = await User.create({
+    await User.create({
       email,
       password,
       name,

@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 
+interface UserData {
+  _id: any;
+  name: string;
+  email: string;
+  bio?: string;
+  createdAt: Date;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -12,7 +20,7 @@ export async function GET(
     const { id } = await params;
     const user = await User.findById(id)
       .select('name email bio createdAt')
-      .lean();
+      .lean() as UserData | null;
 
     if (!user) {
       return NextResponse.json(

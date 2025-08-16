@@ -50,12 +50,12 @@ export async function POST(
 
     // 既存のlikesフィールドをクリーンアップ（ObjectIDを文字列に変換）
     if (Array.isArray(post.likes)) {
-      post.likes = post.likes.map(like => {
+      post.likes = post.likes.map((like: any) => {
         if (like && typeof like === 'object' && like.toString) {
           return like.toString();
         }
         return like;
-      }).filter(like => typeof like === 'string');
+      }).filter((like: any) => typeof like === 'string');
     }
 
     // session.user.idを使用（文字列のユーザーID）
@@ -65,7 +65,7 @@ export async function POST(
 
     // すでにいいねしているかチェック（文字列として比較）
     const likeIndex = post.likes.findIndex(
-      likeId => likeId === userId
+      (likeId: string) => likeId === userId
     );
     
     let liked = false;
@@ -91,9 +91,9 @@ export async function POST(
     try {
       await post.save();
       console.log('Post saved successfully');
-    } catch (saveError: any) {
+    } catch (saveError) {
       console.error('Error saving post:', saveError);
-      throw new Error(`Failed to save post: ${saveError.message}`);
+      throw new Error(`Failed to save post: ${(saveError as Error).message}`);
     }
     
     console.log('After operation - Post likes:', post.likes);
@@ -107,16 +107,17 @@ export async function POST(
       message: liked ? 'いいねしました' : 'いいねを取り消しました'
     });
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('いいねエラー 詳細:', error);
-    console.error('Error stack:', error?.stack || 'No stack');
-    console.error('Error message:', error?.message || String(error));
+    const err = error as Error;
+    console.error('Error stack:', err?.stack || 'No stack');
+    console.error('Error message:', err?.message || String(error));
     
-    const errorMessage = error?.message || 'いいねの処理に失敗しました';
+    const errorMessage = err?.message || 'いいねの処理に失敗しました';
     const errorDetails = {
       error: errorMessage,
       details: String(error),
-      type: error?.name || 'Unknown Error'
+      type: err?.name || 'Unknown Error'
     };
     
     return new NextResponse(JSON.stringify(errorDetails), {

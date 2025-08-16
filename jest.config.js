@@ -6,7 +6,6 @@ const createJestConfig = nextJest({
 
 // ベースとなる設定
 const baseConfig = {
-  coverageProvider: 'v8',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/models/(.*)$': '<rootDir>/src/models/$1',
@@ -17,7 +16,6 @@ const baseConfig = {
   },
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
   moduleDirectories: ['node_modules', '<rootDir>/'],
-  testTimeout: 10000,
   maxWorkers: '50%',
   setupFiles: ['<rootDir>/jest.env.js'],
   collectCoverageFrom: [
