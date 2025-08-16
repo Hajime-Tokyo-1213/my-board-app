@@ -3,255 +3,126 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import TestPage from '@/app/test/page';
 import { ThemeProvider } from '@mui/material/styles';
 import { createTheme } from '@mui/material/styles';
+import '@testing-library/jest-dom';
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Create a test theme
 const theme = createTheme();
 
-// Helper to render with theme
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={theme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={theme}>{component}</ThemeProvider>);
 };
 
 describe('TestPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     (global.fetch as jest.Mock).mockClear();
   });
 
-  it('renders all test sections', () => {
+  it('renders the initial page correctly', () => {
     renderWithTheme(<TestPage />);
-
-    expect(screen.getByText('掲示板アプリ テストページ')).toBeInTheDocument();
-    expect(screen.getByText('API接続テスト')).toBeInTheDocument();
-    expect(screen.getByText('MongoDB接続テスト')).toBeInTheDocument();
-    expect(screen.getByText('投稿作成テスト')).toBeInTheDocument();
-    expect(screen.getByText('投稿一覧テスト')).toBeInTheDocument();
+    expect(screen.getByText('CRUD機能自動テスト')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'テストを実行' })).toBeInTheDocument();
   });
 
-  describe('API Connection Test', () => {
-    it('shows success when API is reachable', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
+  it('runs all CRUD tests and displays success results', async () => {
+    (global.fetch as jest.Mock)
+      // Create: Success
+      .mockResolvedValueOnce({
+        status: 201,
+        json: async () => ({ success: true, data: { _id: 'post1' } }),
+      })
+      // Create: Empty content (error)
+      .mockResolvedValueOnce({
+        status: 400,
+        json: async () => ({ success: false, error: 'Content is required' }),
+      })
+      // Create: Too long content (error)
+      .mockResolvedValueOnce({
+        status: 400,
+        json: async () => ({ success: false, error: 'Content is too long' }),
+      })
+      // Create: Special characters
+      .mockResolvedValueOnce({
+        status: 201,
+        json: async () => ({ success: true, data: { _id: 'post2' } }),
+      })
+      // Read: List posts
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ success: true, data: [{ _id: 'post1' }] }),
+      })
+      // Read: Get one post
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ success: true, data: { _id: 'post1' } }),
+      })
+      // Update: Success
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ success: true }),
+      })
+      // Update: Empty content (error)
+      .mockResolvedValueOnce({
+        status: 400,
+        json: async () => ({ success: false, error: 'Content is required' }),
+      })
+      // Delete: Success
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ success: true }),
+      })
+      // Delete: Not found (error)
+      .mockResolvedValueOnce({
+        status: 404,
+        json: async () => ({ success: false, error: 'Post not found' }),
+      })
+       // Cleanup delete
+      .mockResolvedValueOnce({
+        status: 200,
         json: async () => ({ success: true }),
       });
 
-      renderWithTheme(<TestPage />);
-      
-      const testButton = screen.getAllByText('テスト実行')[0];
-      fireEvent.click(testButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('✅ 成功')).toBeInTheDocument();
-      });
-    });
-
-    it('shows error when API fails', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-
-      renderWithTheme(<TestPage />);
-      
-      const testButton = screen.getAllByText('テスト実行')[0];
-      fireEvent.click(testButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/❌ エラー:/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('MongoDB Connection Test', () => {
-    it('shows success when MongoDB is connected', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const testButton = screen.getAllByText('テスト実行')[1];
-      fireEvent.click(testButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('✅ 成功: データベース接続OK')).toBeInTheDocument();
-      });
-    });
-
-    it('shows error when MongoDB connection fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ success: false, error: 'Connection failed' }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const testButton = screen.getAllByText('テスト実行')[1];
-      fireEvent.click(testButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('❌ エラー: Connection failed')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Create Post Test', () => {
-    it('successfully creates a post', async () => {
-      const mockPost = {
-        _id: '123',
-        content: 'テスト投稿',
-        createdAt: new Date().toISOString(),
-      };
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: mockPost }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const createButton = screen.getByText('投稿作成');
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/✅ 成功: 投稿ID/)).toBeInTheDocument();
-        expect(screen.getByText(new RegExp(mockPost._id))).toBeInTheDocument();
-      });
-    });
-
-    it('shows error when post creation fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ success: false, error: 'Validation error' }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const createButton = screen.getByText('投稿作成');
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('❌ エラー: Validation error')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('List Posts Test', () => {
-    it('displays posts list successfully', async () => {
-      const mockPosts = [
-        { _id: '1', content: 'Post 1', createdAt: new Date().toISOString() },
-        { _id: '2', content: 'Post 2', createdAt: new Date().toISOString() },
-      ];
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: mockPosts }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const listButton = screen.getByText('一覧取得');
-      fireEvent.click(listButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('✅ 成功: 2件の投稿を取得')).toBeInTheDocument();
-        expect(screen.getByText('Post 1')).toBeInTheDocument();
-        expect(screen.getByText('Post 2')).toBeInTheDocument();
-      });
-    });
-
-    it('shows empty state when no posts', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: [] }),
-      });
-
-      renderWithTheme(<TestPage />);
-      
-      const listButton = screen.getByText('一覧取得');
-      fireEvent.click(listButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('✅ 成功: 0件の投稿を取得')).toBeInTheDocument();
-      });
-    });
-
-    it('handles list fetch error', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-
-      renderWithTheme(<TestPage />);
-      
-      const listButton = screen.getByText('一覧取得');
-      fireEvent.click(listButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/❌ エラー:/)).toBeInTheDocument();
-      });
-    });
-  });
-
-  it('shows loading state during test execution', async () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(
-      () => new Promise(resolve => setTimeout(resolve, 100))
-    );
-
     renderWithTheme(<TestPage />);
     
-    const testButton = screen.getAllByText('テスト実行')[0];
-    fireEvent.click(testButton);
+    const runButton = screen.getByRole('button', { name: 'テストを実行' });
+    fireEvent.click(runButton);
 
-    expect(screen.getByText('テスト中...')).toBeInTheDocument();
-  });
-
-  it('clears previous results when running new test', async () => {
-    // First test - success
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true }),
-    });
-
-    renderWithTheme(<TestPage />);
-    
-    const testButton = screen.getAllByText('テスト実行')[0];
-    fireEvent.click(testButton);
+    expect(screen.getByRole('button', { name: 'テスト実行中...' })).toBeDisabled();
 
     await waitFor(() => {
-      expect(screen.getByText('✅ 成功')).toBeInTheDocument();
-    });
+      // Check for a few key success messages
+      expect(screen.getByText('Create: 通常の投稿作成')).toBeInTheDocument();
+      const passedChips = screen.getAllByText('PASSED');
+      expect(passedChips.length).toBeGreaterThanOrEqual(10); // All tests should pass
+    }, { timeout: 3000 });
 
-    // Second test - should clear previous result
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-    fireEvent.click(testButton);
-
-    expect(screen.getByText('テスト中...')).toBeInTheDocument();
-    expect(screen.queryByText('✅ 成功')).not.toBeInTheDocument();
+    expect(screen.getByText('合計: 10 テスト')).toBeInTheDocument();
+    expect(screen.getByText('成功: 10 テスト')).toBeInTheDocument();
+    expect(screen.getByText('失敗: 0 テスト')).toBeInTheDocument();
   });
 
-  it('formats post dates correctly', async () => {
-    const mockPost = {
-      _id: '123',
-      content: 'Test post',
-      createdAt: '2024-01-15T10:30:00.000Z',
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ success: true, data: [mockPost] }),
-    });
+  it('handles a failed test case correctly', async () => {
+    (global.fetch as jest.Mock)
+      // The first test fails
+      .mockResolvedValueOnce({
+        status: 500,
+        json: async () => ({ success: false, error: 'Server Error' }),
+      });
 
     renderWithTheme(<TestPage />);
     
-    const listButton = screen.getByText('一覧取得');
-    fireEvent.click(listButton);
+    const runButton = screen.getByRole('button', { name: 'テストを実行' });
+    fireEvent.click(runButton);
 
     await waitFor(() => {
-      // Should format the date in Japanese locale
-      expect(screen.getByText(/2024/)).toBeInTheDocument();
+      expect(screen.getByText('Create: 通常の投稿作成')).toBeInTheDocument();
+      expect(screen.getByText('FAILED')).toBeInTheDocument();
     });
+
+    expect(screen.getByText('失敗: 1 テスト')).toBeInTheDocument();
+    // Subsequent tests should not have run
+    const pendingChips = screen.getAllByText('PENDING');
+    expect(pendingChips.length).toBe(9);
   });
 });

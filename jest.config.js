@@ -1,18 +1,12 @@
-const nextJest = require('next/jest')
+const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
   dir: './',
-})
+});
 
-// Add any custom config to be passed to Jest
-const customJestConfig = {
+// ベースとなる設定
+const baseConfig = {
   coverageProvider: 'v8',
-  testEnvironment: 'jsdom',
-  // Add test environment options for API routes
-  testEnvironmentOptions: {
-    customExportConditions: ['node', 'node-addons'],
-  },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/models/(.*)$': '<rootDir>/src/models/$1',
@@ -23,16 +17,14 @@ const customJestConfig = {
   },
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
   moduleDirectories: ['node_modules', '<rootDir>/'],
-  testMatch: [
-    '**/__tests__/**/*.{ts,tsx}',
-    '**/*.{test,spec}.{ts,tsx}',
-  ],
+  testTimeout: 10000,
+  maxWorkers: '50%',
+  setupFiles: ['<rootDir>/jest.env.js'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!app/**/*.d.ts',
-    '!src/**/*.stories.{ts,tsx}',
     '!app/layout.tsx',
     '!app/globals.css',
     '!**/__tests__/**',
@@ -47,14 +39,40 @@ const customJestConfig = {
       statements: 70,
     },
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(mongodb|bson)/)',
-  ],
-  testTimeout: 10000,
-  maxWorkers: '50%',
-  // 環境変数の設定
-  setupFiles: ['<rootDir>/jest.env.js'],
-}
+};
 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-module.exports = createJestConfig(customJestConfig)
+const jestConfig = async () => {
+  const nextJestConfig = await createJestConfig(baseConfig)();
+
+  return {
+    ...nextJestConfig,
+    projects: [
+      {
+        ...nextJestConfig,
+        displayName: 'jsdom',
+        testEnvironment: 'jsdom',
+        testMatch: [
+          '**/__tests__/**/*.test.tsx',
+          '**/__tests__/app/**/*.test.tsx',
+          '**/__tests__/components/**/*.test.tsx',
+        ],
+        transform: nextJestConfig.transform,
+      },
+      {
+        ...nextJestConfig,
+        displayName: 'node',
+        testEnvironment: 'node',
+        testMatch: [
+          '**/__tests__/**/*.test.ts',
+          '**/__tests__/api/**/*.test.ts',
+          '**/__tests__/api-routes/**/*.test.ts',
+          '**/__tests__/lib/**/*.test.ts',
+          '**/__tests__/models/**/*.test.ts',
+        ],
+        transform: nextJestConfig.transform,
+      },
+    ],
+  };
+};
+
+module.exports = jestConfig;

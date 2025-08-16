@@ -240,6 +240,7 @@ export default function PostCard({ post, onDelete, onUpdate, currentUserId, onUs
                   編集
                 </Button>
                 <IconButton
+                  aria-label="削除"
                   size="small"
                   onClick={() => onDelete(post._id)}
                   color="error"
