@@ -1,22 +1,24 @@
 import { GET, PUT, DELETE } from '../../../app/api/posts/[id]/route';
 import { createMockNextRequest } from '../helpers/next-mocks';
-import dbConnect from '@/lib/mongodb';
 import Post from '@/models/Post';
 
 // Mock the dependencies
-jest.mock('@/lib/mongodb');
+const mockDbConnect = jest.fn().mockResolvedValue(undefined);
+jest.mock('@/lib/mongodb', () => ({
+  __esModule: true,
+  default: mockDbConnect
+}));
 jest.mock('@/models/Post');
 jest.mock('mongoose');
 
 describe('/api/posts/[id]', () => {
-  const mockDbConnect = dbConnect as jest.MockedFunction<typeof dbConnect>;
   const mockPost = Post as jest.Mocked<typeof Post>;
 
   const mockParams = { id: '507f1f77bcf86cd799439011' };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockDbConnect.mockResolvedValue(undefined as any);
+    mockDbConnect.mockResolvedValue(undefined);
   });
 
   describe('GET /api/posts/[id]', () => {
