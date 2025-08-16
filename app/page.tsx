@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
   Container,
   Typography,
@@ -8,31 +10,79 @@ import {
   CircularProgress,
   Alert,
   Paper,
+  Button,
+  Pagination,
+  Chip,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
 } from '@mui/material';
+import {
+  AccountCircle,
+  ExitToApp,
+  Person,
+} from '@mui/icons-material';
 import PostForm from '@/components/PostForm';
 import PostCard from '@/components/PostCard';
+import { signOut } from 'next-auth/react';
+import UserAvatar from '@/components/UserAvatar';
+import UserProfileModal from '@/components/UserProfileModal';
 
 interface Post {
   _id: string;
+  title: string;
   content: string;
+  authorId: string;
+  authorName: string;
+  authorEmail: string;
+  authorImage?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
-  const fetchPosts = async () => {
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [status, router]);
+
+  const fetchPosts = async (page: number = 1) => {
     try {
-      const response = await fetch('/api/posts');
+      const response = await fetch(`/api/posts?page=${page}&limit=10`);
+      if (response.status === 401) {
+        router.push('/auth/signin');
+        return;
+      }
       const data = await response.json();
       if (data.success) {
         setPosts(data.data);
+        setPagination(data.pagination);
       } else {
-        console.error('API Error Details:', data);
-        setError(`投稿の取得に失敗しました: ${data.error || 'Unknown error'}`);
+        setError(data.error || '投稿の取得に失敗しました');
       }
     } catch (err) {
       console.error('Failed to fetch posts:', err);
@@ -43,21 +93,30 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    if (status === 'authenticated') {
+      fetchPosts(currentPage);
+    }
+  }, [status, currentPage]);
 
-  const handleCreatePost = async (content: string) => {
+  const handleCreatePost = async (title: string, content: string) => {
     try {
       const response = await fetch('/api/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title, content }),
       });
+      
+      if (response.status === 401) {
+        router.push('/auth/signin');
+        return;
+      }
+      
       const data = await response.json();
       if (data.success) {
-        setPosts([data.data, ...posts]);
+        fetchPosts(1);
+        setCurrentPage(1);
       } else {
         setError(data.error || '投稿の作成に失敗しました');
       }
@@ -67,15 +126,16 @@ export default function Home() {
     }
   };
 
-  const handleUpdatePost = async (id: string, content: string) => {
+  const handleUpdatePost = async (id: string, title: string, content: string) => {
     try {
       const response = await fetch(`/api/posts/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title, content }),
       });
+      
       const data = await response.json();
       if (data.success) {
         setPosts(posts.map(post => 
@@ -99,11 +159,12 @@ export default function Home() {
       const response = await fetch(`/api/posts/${id}`, {
         method: 'DELETE',
       });
+      
       const data = await response.json();
       if (data.success) {
-        setPosts(posts.filter(post => post._id !== id));
+        fetchPosts(currentPage);
       } else {
-        setError('投稿の削除に失敗しました');
+        setError(data.error || '投稿の削除に失敗しました');
       }
     } catch (err) {
       console.error('Failed to delete post:', err);
@@ -111,96 +172,210 @@ export default function Home() {
     }
   };
 
+  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setCurrentPage(value);
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfile = () => {
+    handleMenuClose();
+    router.push('/profile');
+  };
+
+  const handleSignOut = () => {
+    handleMenuClose();
+    signOut({ callbackUrl: '/auth/signin' });
+  };
+
+  const handleUserClick = (userId: string) => {
+    setSelectedUserId(userId);
+    setUserModalOpen(true);
+  };
+
+  const handleCloseUserModal = () => {
+    setUserModalOpen(false);
+    setSelectedUserId(null);
+  };
+
+
+  if (status === 'loading') {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
   return (
-    <Container 
-      maxWidth="md" 
-      sx={{ 
-        py: { xs: 2, sm: 3, md: 4 },
-        px: { xs: 2, sm: 3 }
-      }}
-    >
-      <Paper 
-        elevation={3} 
+    <>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            会員制掲示板
+          </Typography>
+          
+          {session?.user && (
+            <>
+              <Typography variant="body2" sx={{ mr: 2 }}>
+                {session.user.name || session.user.email}
+              </Typography>
+              <IconButton
+                size="large"
+                onClick={handleMenuOpen}
+                color="inherit"
+              >
+                {session.user.name ? (
+                  <UserAvatar name={session.user.name} size={32} />
+                ) : (
+                  <AccountCircle />
+                )}
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+              >
+                <MenuItem onClick={handleProfile}>
+                  <Person sx={{ mr: 1 }} /> プロフィール
+                </MenuItem>
+                <MenuItem onClick={handleSignOut}>
+                  <ExitToApp sx={{ mr: 1 }} /> ログアウト
+                </MenuItem>
+              </Menu>
+            </>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      <Container 
+        maxWidth="md" 
         sx={{ 
-          p: { xs: 2, sm: 3 }, 
-          mb: { xs: 2, sm: 3 }, 
-          bgcolor: 'primary.main', 
-          color: 'white',
-          borderRadius: 2
+          py: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 2, sm: 3 }
         }}
       >
-        <Typography 
-          variant="h3" 
-          component="h1" 
-          align="center"
-          sx={{
-            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
-            fontWeight: 700
-          }}
-        >
-          オープン掲示板
-        </Typography>
-        <Typography 
-          variant="subtitle1" 
-          align="center" 
-          sx={{ 
-            mt: 1,
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            opacity: 0.9
-          }}
-        >
-          誰でも自由に投稿・編集・削除ができます
-        </Typography>
-      </Paper>
-
-      {error && (
-        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <PostForm onSubmit={handleCreatePost} />
-
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : posts.length === 0 ? (
         <Paper 
+          elevation={3} 
           sx={{ 
             p: { xs: 2, sm: 3 }, 
-            textAlign: 'center',
+            mb: { xs: 2, sm: 3 }, 
+            bgcolor: 'primary.main', 
+            color: 'white',
             borderRadius: 2
           }}
         >
-          <Typography color="text.secondary">
-            まだ投稿がありません。最初の投稿をしてみましょう！
-          </Typography>
-        </Paper>
-      ) : (
-        <Box>
           <Typography 
-            variant="h6" 
-            sx={{ 
-              mb: 2,
-              fontSize: { xs: '1.1rem', sm: '1.25rem' },
-              fontWeight: 600
+            variant="h3" 
+            component="h1" 
+            align="center"
+            sx={{
+              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
+              fontWeight: 700
             }}
           >
-            投稿一覧 ({posts.length}件)
+            会員制掲示板
           </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {posts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                onDelete={handleDeletePost}
-                onUpdate={handleUpdatePost}
+          <Typography 
+            variant="subtitle1" 
+            align="center" 
+            sx={{ 
+              mt: 1,
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              opacity: 0.9
+            }}
+          >
+            会員限定の掲示板です
+          </Typography>
+          {session?.user && (
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Chip 
+                label={`ようこそ、${session.user.name || session.user.email}さん`}
+                sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', color: 'white' }}
               />
-            ))}
+            </Box>
+          )}
+        </Paper>
+
+        {error && (
+          <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <PostForm onSubmit={handleCreatePost} />
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
           </Box>
-        </Box>
-      )}
-    </Container>
+        ) : posts.length === 0 ? (
+          <Paper 
+            sx={{ 
+              p: { xs: 2, sm: 3 }, 
+              textAlign: 'center',
+              borderRadius: 2
+            }}
+          >
+            <Typography color="text.secondary">
+              まだ投稿がありません。最初の投稿をしてみましょう！
+            </Typography>
+          </Paper>
+        ) : (
+          <Box>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mb: 2,
+                fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                fontWeight: 600
+              }}
+            >
+              投稿一覧 ({pagination?.totalCount || 0}件)
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {posts.map((post) => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  onDelete={handleDeletePost}
+                  onUpdate={handleUpdatePost}
+                  currentUserId={session?.user?.id}
+                  onUserClick={handleUserClick}
+                />
+              ))}
+            </Box>
+            
+            {pagination && pagination.totalPages > 1 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <Pagination
+                  count={pagination.totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="large"
+                />
+              </Box>
+            )}
+          </Box>
+        )}
+      </Container>
+      
+      <UserProfileModal
+        open={userModalOpen}
+        onClose={handleCloseUserModal}
+        userId={selectedUserId}
+      />
+    </>
   );
 }

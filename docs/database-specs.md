@@ -1,292 +1,339 @@
-# データベース仕様書 - オープン掲示板システム
+# データベース仕様書
 
-## 1. データベース概要
+## 1. 概要
 
-### 1.1 基本情報
-- **データベース種別**: NoSQL（ドキュメント型）
-- **使用DBMS**: MongoDB Atlas
-- **バージョン**: 6.0以上
-- **接続方式**: MongoDB接続文字列（SRV形式）
-- **ORM/ODM**: Mongoose 8.17.0
+### 1.1 データベース情報
+- **種類**: MongoDB（NoSQLドキュメントデータベース）
+- **ODM**: Mongoose 8.17.0
+- **接続方式**: MongoDB Connection String
+- **推奨環境**: MongoDB Atlas（クラウド）/ MongoDB 5.0以上（ローカル）
 
-### 1.2 接続情報
+### 1.2 データベース設計方針
+- **スキーマ設計**: Mongooseによる厳密なスキーマ定義
+- **リレーション**: 参照型（Reference）と埋め込み型（Embedded）の混合
+- **インデックス**: パフォーマンス最適化のための適切なインデックス設定
+- **トランザクション**: 必要に応じてトランザクション処理を実装
+
+---
+
+## 2. コレクション一覧
+
+| コレクション名 | 説明 | 主キー | レコード数（想定） |
+|--------------|------|--------|-----------------|
+| users | ユーザー情報 | _id (ObjectId) | ~10,000 |
+| posts | 投稿情報 | _id (ObjectId) | ~100,000 |
+| sessions | セッション情報（NextAuth） | _id (ObjectId) | アクティブユーザー数 |
+| accounts | 外部認証情報（NextAuth） | _id (ObjectId) | ユーザー数と同等 |
+
+---
+
+## 3. コレクション詳細仕様
+
+### 3.1 users コレクション
+
+#### スキーマ定義（models/User.ts）
+
+```javascript
+{
+  _id: ObjectId,              // 主キー（自動生成）
+  email: String,              // メールアドレス（必須、一意、小文字）
+  password: String,           // パスワードハッシュ（必須）
+  name: String,              // ユーザー名（必須、最大50文字）
+  bio: String,               // 自己紹介（最大200文字）
+  image: String,             // プロフィール画像URL
+  emailVerified: Boolean,    // メール確認済みフラグ（デフォルト: false）
+  emailVerificationToken: String,    // メール確認トークン
+  emailVerificationExpires: Date,    // トークン有効期限
+  resetPasswordToken: String,        // パスワードリセットトークン
+  resetPasswordExpires: Date,        // リセットトークン有効期限
+  createdAt: Date,          // 作成日時（自動）
+  updatedAt: Date           // 更新日時（自動）
+}
 ```
-mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
-```
-
-### 1.3 環境別設定
-
-| 環境 | データベース名 | 用途 |
-|------|---------------|------|
-| 開発 | boardDB | 開発・テスト用 |
-| 本番 | boardDB_prod | 本番運用（未構築） |
-
-## 2. コレクション設計
-
-### 2.1 posts コレクション
-
-#### 概要
-投稿データを格納するメインコレクション
-
-#### スキーマ定義
-```typescript
-const PostSchema = new Schema({
-  content: { 
-    type: String, 
-    required: true,
-    maxlength: 200 
-  }
-}, { 
-  timestamps: true 
-});
-```
-
-#### フィールド仕様
-
-| フィールド名 | 型 | 必須 | 制約 | 説明 |
-|------------|-----|------|------|------|
-| _id | ObjectId | ○ | 自動生成 | プライマリキー |
-| content | String | ○ | 最大200文字 | 投稿内容 |
-| createdAt | Date | ○ | 自動生成 | 作成日時 |
-| updatedAt | Date | ○ | 自動更新 | 更新日時 |
-| __v | Number | ○ | 自動管理 | バージョンキー |
 
 #### インデックス
+- `email`: 一意インデックス（ユニーク制約）
+- `emailVerificationToken`: 単一インデックス
+- `resetPasswordToken`: 単一インデックス
 
-| インデックス名 | フィールド | タイプ | 用途 |
-|--------------|-----------|--------|------|
-| _id_ | _id | 昇順 | プライマリキー（自動） |
-| createdAt_-1 | createdAt | 降順 | 投稿一覧のソート用（推奨） |
-
-## 3. データモデル
-
-### 3.1 Mongooseモデル定義
-
-```typescript
-// /src/models/Post.ts
-import mongoose, { Schema, Document, models } from 'mongoose';
-
-export interface IPost extends Document {
-  content: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const PostSchema: Schema = new Schema({
-  content: { 
-    type: String, 
-    required: true,
-    maxlength: 200 
-  }
-}, { 
-  timestamps: true 
-});
-
-const Post = models.Post || mongoose.model<IPost>('Post', PostSchema);
-```
-
-### 3.2 バリデーション
-
-| 項目 | ルール | エラーメッセージ |
-|------|--------|----------------|
-| content必須 | required: true | Path `content` is required |
-| content長さ | maxlength: 200 | Path `content` exceeds maximum length |
-
-## 4. データ操作
-
-### 4.1 CRUD操作
-
-#### Create（作成）
-```javascript
-const post = await Post.create({ content: "投稿内容" });
-```
-
-#### Read（取得）
-```javascript
-// 一覧取得
-const posts = await Post.find({}).sort({ createdAt: -1 });
-
-// 単一取得
-const post = await Post.findById(id);
-```
-
-#### Update（更新）
-```javascript
-const post = await Post.findByIdAndUpdate(
-  id, 
-  { content: "更新内容" },
-  { new: true, runValidators: true }
-);
-```
-
-#### Delete（削除）
-```javascript
-const post = await Post.findByIdAndDelete(id);
-```
-
-### 4.2 トランザクション
-現在の実装では単一ドキュメント操作のみのため、トランザクション未使用。
-
-## 5. 接続管理
-
-### 5.1 接続プーリング実装
-
-```typescript
-// /src/lib/mongodb.ts
-const cached = global.mongoose || { conn: null, promise: null };
-
-async function dbConnect(): Promise<Mongoose> {
-  if (cached.conn) {
-    return cached.conn;
-  }
-  
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-    cached.promise = mongoose.connect(MONGODB_URI!, opts);
-  }
-  
-  cached.conn = await cached.promise;
-  return cached.conn;
-}
-```
-
-### 5.2 接続オプション
-- **bufferCommands**: false（コマンドバッファリング無効）
-- **retryWrites**: true（書き込みリトライ有効）
-- **w**: majority（過半数レプリカ確認）
-
-## 6. データ例
-
-### 6.1 投稿ドキュメント例
+#### データ例
 ```json
 {
-  "_id": {
-    "$oid": "689436f5e7865cc4b69f0021"
-  },
-  "content": "オープン掲示板へようこそ！誰でも自由に投稿できます。",
-  "createdAt": {
-    "$date": "2025-08-07T05:17:41.292Z"
-  },
-  "updatedAt": {
-    "$date": "2025-08-07T05:17:41.292Z"
-  },
-  "__v": 0
+  "_id": "507f1f77bcf86cd799439011",
+  "email": "user@example.com",
+  "password": "$2b$10$K7L1OJ0TfgH5KqG7...", // bcryptハッシュ
+  "name": "山田太郎",
+  "bio": "Web開発者です。よろしくお願いします。",
+  "image": null,
+  "emailVerified": true,
+  "emailVerificationToken": null,
+  "emailVerificationExpires": null,
+  "resetPasswordToken": null,
+  "resetPasswordExpires": null,
+  "createdAt": "2024-01-15T09:30:00.000Z",
+  "updatedAt": "2024-01-15T09:30:00.000Z"
 }
 ```
 
-## 7. バックアップとリカバリ
+### 3.2 posts コレクション
 
-### 7.1 MongoDB Atlas自動バックアップ
-- **頻度**: 毎日
-- **保持期間**: 7日間（無料プラン）
-- **リストア**: Atlas UIから実行可能
+#### スキーマ定義（models/Post.ts）
 
-### 7.2 手動バックアップ
-```bash
-# エクスポート
-mongodump --uri="mongodb+srv://..." --out=./backup
-
-# インポート
-mongorestore --uri="mongodb+srv://..." ./backup
-```
-
-## 8. パフォーマンス最適化
-
-### 8.1 実装済み最適化
-- 接続プーリングによる再利用
-- createdAtフィールドでのソート（インデックス推奨）
-- 必要最小限のフィールド取得
-
-### 8.2 推奨最適化
 ```javascript
-// インデックス作成（初回のみ実行）
-db.posts.createIndex({ createdAt: -1 });
-
-// 複合インデックス（将来の検索機能用）
-db.posts.createIndex({ content: "text" });
+{
+  _id: ObjectId,              // 主キー（自動生成）
+  title: String,              // タイトル（必須、最大100文字、トリム）
+  content: String,            // 本文（必須、最大1000文字、トリム）
+  authorId: String,           // 投稿者ID（必須、User._idの文字列）
+  authorName: String,         // 投稿者名（必須）
+  authorEmail: String,        // 投稿者メール（必須）
+  authorImage: String,        // 投稿者画像URL（nullable）
+  likes: [String],           // いいねしたユーザーIDの配列
+  likesCount: Number,        // いいね数（デフォルト: 0）
+  createdAt: Date,           // 作成日時（自動）
+  updatedAt: Date            // 更新日時（自動）
+}
 ```
 
-## 9. セキュリティ
+#### インデックス
+- `createdAt`: 降順インデックス（新着順ソート用）
+- `authorId, createdAt`: 複合インデックス（ユーザー別投稿一覧用）
 
-### 9.1 実装済みセキュリティ
-- 接続文字列の環境変数管理
-- MongooseによるNoSQL Injection対策
-- スキーマバリデーション
-
-### 9.2 MongoDB Atlas設定
-- **ネットワークアクセス**: IPホワイトリスト設定
-- **認証**: SCRAM-SHA-256
-- **暗号化**: TLS/SSL接続
-
-### 9.3 環境変数のセキュリティ
-⚠️ **重要なセキュリティ注意事項**:
-- `.env.local`ファイルには機密情報（データベース接続文字列）が含まれる
-- **必ず`.gitignore`に含めてGit管理から除外すること**
-- 本番環境では環境変数として安全に設定
-- 接続文字列にはユーザー名とパスワードが含まれるため厳重に管理
-
-```bash
-# .gitignore に必ず含める
-.env.local
-.env*.local
+#### データ例
+```json
+{
+  "_id": "507f191e810c19729de860ea",
+  "title": "Next.js 15の新機能について",
+  "content": "Next.js 15では、App Routerが改善され、パフォーマンスが向上しました。",
+  "authorId": "507f1f77bcf86cd799439011",
+  "authorName": "山田太郎",
+  "authorEmail": "user@example.com",
+  "authorImage": null,
+  "likes": ["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"],
+  "likesCount": 2,
+  "createdAt": "2024-01-15T10:30:00.000Z",
+  "updatedAt": "2024-01-15T11:00:00.000Z"
+}
 ```
 
-## 10. 監視とメトリクス
+### 3.3 sessions コレクション（NextAuth管理）
 
-### 10.1 MongoDB Atlas監視
-- リアルタイムパフォーマンス
-- 接続数
-- 操作レイテンシ
-- ストレージ使用量
+#### スキーマ定義
 
-### 10.2 アプリケーションログ
 ```javascript
-console.log('Connecting to MongoDB...');
-console.log('Connected to MongoDB successfully');
-console.log(`Found ${posts.length} posts`);
+{
+  _id: ObjectId,
+  sessionToken: String,      // セッショントークン（一意）
+  userId: ObjectId,          // ユーザーID（users._idの参照）
+  expires: Date              // 有効期限
+}
 ```
 
-## 11. 容量計画
+### 3.4 accounts コレクション（NextAuth管理）
 
-### 11.1 ストレージ計算
-- 平均投稿サイズ: 約500バイト
-- 1万投稿: 約5MB
-- 10万投稿: 約50MB
-- Atlas無料枠: 512MB（約100万投稿分）
+#### スキーマ定義
 
-### 11.2 スケーリング戦略
-- 垂直スケール: Atlasティアアップグレード
-- 水平スケール: シャーディング（将来対応）
-- アーカイブ: 古い投稿の別コレクション移動
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId,          // ユーザーID（users._idの参照）
+  type: String,              // アカウントタイプ
+  provider: String,          // プロバイダー名
+  providerAccountId: String, // プロバイダーアカウントID
+  // その他プロバイダー固有のフィールド
+}
+```
 
-## 12. マイグレーション
+---
 
-### 12.1 スキーマ変更手順
+## 4. リレーション設計
+
+### 4.1 リレーション図
+
+```
+users (1) ─────┬───── (N) posts
+              │         ├─ authorId (参照)
+              │         ├─ authorName (埋め込み)
+              │         ├─ authorEmail (埋め込み)
+              │         └─ authorImage (埋め込み)
+              │
+              └───── (N) likes (posts.likes配列内)
+```
+
+### 4.2 設計の理由
+
+#### 参照型を使用する箇所
+- `posts.authorId` → `users._id`: ユーザー情報の整合性を保つため
+
+#### 埋め込み型を使用する箇所
+- `posts.authorName`, `authorEmail`, `authorImage`: 
+  - 投稿一覧表示時のパフォーマンス向上
+  - JOINクエリを避けるため
+  - ユーザー名の変更頻度が低いため
+
+#### 配列型を使用する箇所
+- `posts.likes`: 
+  - いいねしたユーザーIDのリスト
+  - 配列サイズが制限される（1投稿あたり最大数千程度）
+
+---
+
+## 5. インデックス戦略
+
+### 5.1 設定済みインデックス
+
+| コレクション | フィールド | タイプ | 目的 |
+|------------|-----------|--------|------|
+| users | email | Unique | メールアドレスの一意性保証、ログイン高速化 |
+| users | emailVerificationToken | Single | トークン検証の高速化 |
+| users | resetPasswordToken | Single | トークン検証の高速化 |
+| posts | createdAt | Single (DESC) | 新着順ソートの高速化 |
+| posts | authorId, createdAt | Compound | ユーザー別投稿一覧の高速化 |
+
+### 5.2 インデックス設定コマンド
+
+```javascript
+// Mongooseでの自動設定
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ emailVerificationToken: 1 });
+UserSchema.index({ resetPasswordToken: 1 });
+
+PostSchema.index({ createdAt: -1 });
+PostSchema.index({ authorId: 1, createdAt: -1 });
+```
+
+---
+
+## 6. データ整合性とバリデーション
+
+### 6.1 バリデーションルール
+
+#### users コレクション
+- `email`: 必須、メール形式、一意
+- `password`: 必須、8文字以上（保存前にハッシュ化）
+- `name`: 必須、最大50文字
+- `bio`: 最大200文字
+
+#### posts コレクション
+- `title`: 必須、最大100文字、前後の空白削除
+- `content`: 必須、最大1000文字、前後の空白削除
+- `authorId`: 必須、有効なユーザーID
+
+### 6.2 データ整合性の保証
+
+- **カスケード削除**: ユーザー削除時の投稿削除（未実装、要検討）
+- **トランザクション**: 複数コレクションの更新時
+- **ミドルウェア**: Mongoose pre/postフックによる自動処理
+
+---
+
+## 7. パフォーマンス最適化
+
+### 7.1 クエリ最適化
+
+```javascript
+// 効率的なページネーション
+Post.find()
+  .sort({ createdAt: -1 })
+  .skip((page - 1) * limit)
+  .limit(limit)
+  .lean();  // パフォーマンス向上のためlean()を使用
+
+// 必要なフィールドのみ取得
+Post.find({}, 'title content authorName createdAt likesCount');
+```
+
+### 7.2 接続プール設定
+
+```javascript
+// lib/mongodb.ts
+const options = {
+  maxPoolSize: 10,      // 最大接続数
+  minPoolSize: 2,       // 最小接続数
+  maxIdleTimeMS: 10000, // アイドルタイムアウト
+};
+```
+
+---
+
+## 8. バックアップとリカバリ
+
+### 8.1 バックアップ戦略
+- **頻度**: 日次自動バックアップ
+- **保持期間**: 30日間
+- **方式**: MongoDB Atlas自動バックアップ（推奨）
+
+### 8.2 リカバリ手順
+1. MongoDB Atlasダッシュボードからリストア
+2. ポイントインタイムリカバリ（PITR）対応
+3. RPO: 24時間、RTO: 4時間
+
+---
+
+## 9. セキュリティ対策
+
+### 9.1 アクセス制御
+- **認証**: MongoDB接続文字列による認証
+- **暗号化**: TLS/SSL通信の強制
+- **ネットワーク**: IPホワイトリスト設定
+
+### 9.2 データ保護
+- **パスワード**: bcryptによるハッシュ化（saltラウンド: 10）
+- **トークン**: crypto.randomBytesによる安全な乱数生成
+- **サニタイゼーション**: MongoDBインジェクション対策
+
+---
+
+## 10. マイグレーション
+
+### 10.1 スキーマ変更手順
 1. 新フィールドをオプショナルで追加
-2. 既存データの移行スクリプト実行
-3. フィールドを必須に変更（必要な場合）
+2. データ移行スクリプトの実行
+3. 必須制約の追加
+4. 旧フィールドの削除
 
-### 12.2 マイグレーション例
+### 10.2 サンプルマイグレーションスクリプト
+
 ```javascript
-// 例：カテゴリフィールド追加
-db.posts.updateMany(
-  { category: { $exists: false } },
-  { $set: { category: "general" } }
-);
+// scripts/migrate-likes.js
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+async function migrateLikes() {
+  await mongoose.connect(process.env.MONGODB_URI);
+  
+  const posts = await Post.find({});
+  for (const post of posts) {
+    // ObjectIDを文字列に変換
+    post.likes = post.likes.map(id => id.toString());
+    await post.save();
+  }
+  
+  console.log('Migration completed');
+  process.exit(0);
+}
 ```
 
-## 13. 今後の拡張予定
+---
 
-### 13.1 新規コレクション
-- users: ユーザー管理（認証実装時）
-- comments: コメント機能
-- likes: いいね機能
-- tags: タグ管理
+## 11. 監視項目
 
-### 13.2 スキーマ拡張
-- 投稿者情報（IPアドレス、UA）
-- カテゴリ/タグ
-- 添付ファイル参照
-- 既読管理
+### 11.1 メトリクス
+- **接続数**: アクティブ/アイドル接続数
+- **クエリパフォーマンス**: 遅いクエリの検出
+- **ストレージ**: データサイズ、インデックスサイズ
+- **レプリケーション**: レプリカセットの状態
+
+### 11.2 アラート設定
+- 接続エラー率 > 1%
+- クエリ実行時間 > 1秒
+- ストレージ使用率 > 80%
+- レプリケーション遅延 > 10秒
+
+---
+
+## 12. 改訂履歴
+
+| 版 | 日付 | 内容 | 作成者 |
+|----|------|------|--------|
+| 1.0 | 2025-08-16 | 初版作成 | Claude Code |
