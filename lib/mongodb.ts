@@ -10,12 +10,6 @@ declare global {
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  throw new Error(
-    'MONGODB_URI is not set. Define it in Vercel Environment Variables (Production/Preview/Development) or .env.local for local dev.'
-  );
-}
-
 let cached = global.mongoose;
 
 if (!cached) {
@@ -23,6 +17,12 @@ if (!cached) {
 }
 
 async function dbConnect() {
+  if (!MONGODB_URI) {
+    throw new Error(
+      'MONGODB_URI is not set. Define it in Vercel Environment Variables (Production/Preview/Development) or .env.local for local dev.'
+    );
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
@@ -32,7 +32,7 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
       return mongoose;
     });
   }
@@ -47,18 +47,22 @@ async function dbConnect() {
 }
 
 // MongoDB Client for NextAuth
-let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    client = new MongoClient(MONGODB_URI);
-    global._mongoClientPromise = client.connect();
+if (MONGODB_URI) {
+  if (process.env.NODE_ENV === 'development') {
+    if (!global._mongoClientPromise) {
+      const client = new MongoClient(MONGODB_URI);
+      global._mongoClientPromise = client.connect();
+    }
+    clientPromise = global._mongoClientPromise;
+  } else {
+    const client = new MongoClient(MONGODB_URI);
+    clientPromise = client.connect();
   }
-  clientPromise = global._mongoClientPromise;
 } else {
-  client = new MongoClient(MONGODB_URI);
-  clientPromise = client.connect();
+  // ビルド時にはダミーのPromiseを返す
+  clientPromise = Promise.reject(new Error('MONGODB_URI is not set'));
 }
 
 // Alias for compatibility
