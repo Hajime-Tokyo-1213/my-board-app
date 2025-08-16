@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import ThemeProvider from "@/providers/ThemeProvider";
+import ThemeProvider from "@/src/providers/ThemeProvider";
+import SessionWrapper from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
-  title: "オープン掲示板",
-  description: "誰でも自由に投稿・編集・削除ができる掲示板",
+  title: "会員制掲示板",
+  description: "会員限定の掲示板システム",
 };
 
 export default function RootLayout({
@@ -14,9 +15,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <SessionWrapper>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </SessionWrapper>
       </body>
     </html>
   );
