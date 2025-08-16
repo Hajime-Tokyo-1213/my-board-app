@@ -115,6 +115,33 @@ jest.mock('next/navigation', () => ({
   },
 }))
 
+// Mock NextResponse
+jest.mock('next/server', () => ({
+  NextResponse: {
+    json: (data, init) => {
+      const response = new Response(JSON.stringify(data), {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          ...(init?.headers || {}),
+        },
+      })
+      return response
+    },
+    redirect: (url, init) => {
+      return new Response(null, {
+        ...init,
+        status: 307,
+        headers: {
+          Location: url.toString(),
+          ...(init?.headers || {}),
+        },
+      })
+    },
+  },
+  NextRequest: class NextRequest extends Request {},
+}))
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
