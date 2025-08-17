@@ -43,7 +43,14 @@ export interface EmailOptions {
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
   try {
-    console.log(`📧 メール送信中: ${to}`);
+    console.log(`📧 メール送信開始: ${to}`);
+    console.log('📮 SMTP設定確認:', {
+      host: process.env.SMTP_HOST || 'NOT SET',
+      port: process.env.SMTP_PORT || 'NOT SET',
+      user: process.env.SMTP_USER || 'NOT SET',
+      from: process.env.EMAIL_FROM || 'NOT SET',
+      hasPassword: !!process.env.SMTP_PASS,
+    });
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || 'noreply@boardapp.com',
@@ -69,6 +76,7 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
       command: error.command,
       response: error.response,
       responseCode: error.responseCode,
+      stack: error.stack,
     });
     return { success: false, error };
   }
