@@ -3,16 +3,34 @@ import type { Transporter } from 'nodemailer';
 
 // SMTPトランスポーターの作成
 const createTransporter = (): Transporter | any => {
-  // SMTP設定が存在しない場合のみモックを使用
-  if (!process.env.SMTP_HOST) {
-    console.log('⚠️ SMTP設定が見つかりません。開発モードで動作します。');
+  // 開発環境または SMTP設定が存在しない場合のみモックを使用
+  if (!process.env.SMTP_HOST || process.env.NODE_ENV === 'development' || process.env.DISABLE_EMAIL === 'true') {
+    console.log('⚠️ メール送信が無効化されています（開発モード）');
     return {
       sendMail: async (mailOptions: any) => {
-        console.log('📧 Development Mode - Email would be sent:');
-        console.log('To:', mailOptions.to);
-        console.log('Subject:', mailOptions.subject);
-        console.log('Preview URL will be logged here in production');
-        return { messageId: 'dev-' + Date.now() };
+        console.log('');
+        console.log('📧 ========== メール送信（開発モード） ==========');
+        console.log('📮 宛先:', mailOptions.to);
+        console.log('📝 件名:', mailOptions.subject);
+        console.log('');
+        
+        // HTMLから確認URLを抽出して表示
+        const urlMatch = mailOptions.html.match(/href="([^"]*localhost[^"]*)"/);
+        if (urlMatch) {
+          console.log('🔗 確認URL:');
+          console.log('   ', urlMatch[1]);
+          console.log('');
+          console.log('   👆 このURLをブラウザで開いてメール確認を完了してください');
+        }
+        console.log('===============================================');
+        console.log('');
+        
+        return { 
+          messageId: 'dev-' + Date.now(),
+          accepted: [mailOptions.to],
+          rejected: [],
+          response: '250 Development mode - Email logged to console'
+        };
       }
     };
   }

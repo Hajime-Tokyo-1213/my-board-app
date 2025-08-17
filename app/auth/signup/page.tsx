@@ -38,6 +38,8 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState<string | undefined>();
+  const [skipEmailVerification, setSkipEmailVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const passwordStrength = (password: string) => {
@@ -98,6 +100,8 @@ export default function SignUpPage() {
       }
 
       setSuccess(true);
+      setVerificationUrl(data.verificationUrl);
+      setSkipEmailVerification(data.skipEmailVerification || false);
     } catch (error) {
       setError(error instanceof Error ? error.message : '登録に失敗しました');
     } finally {
@@ -114,11 +118,36 @@ export default function SignUpPage() {
             <Typography component="h1" variant="h5" gutterBottom>
               登録完了
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              確認メールを送信しました。
-              メール内のリンクをクリックして、
-              メールアドレスを確認してください。
-            </Typography>
+            {skipEmailVerification ? (
+              <>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                  メール確認はスキップされました（開発モード）
+                </Typography>
+                {verificationUrl && (
+                  <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      確認URL（デバッグ用）:
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        wordBreak: 'break-all',
+                        fontFamily: 'monospace',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {verificationUrl}
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            ) : (
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                確認メールを送信しました。
+                メール内のリンクをクリックして、
+                メールアドレスを確認してください。
+              </Typography>
+            )}
             <Button
               variant="contained"
               fullWidth
