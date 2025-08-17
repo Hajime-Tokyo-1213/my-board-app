@@ -54,14 +54,8 @@ export async function POST(request: NextRequest) {
       ...emailContent,
     });
 
-    const skipEmailVerification = process.env.DISABLE_EMAIL === 'true';
-    
     return NextResponse.json({
-      message: skipEmailVerification 
-        ? '登録が完了しました。メール確認はスキップされました。ログインしてください。'
-        : '登録が完了しました。確認メールをご確認ください。',
-      skipEmailVerification,
-      verificationUrl: skipEmailVerification ? verificationUrl : undefined,
+      message: '登録が完了しました。確認メールをご確認ください。',
     });
   } catch (error) {
     console.error('登録エラー:', error);

@@ -25,10 +25,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('メールアドレスまたはパスワードが正しくありません');
         }
 
-        // 開発環境またはメール確認無効化時はスキップ
-        const skipEmailVerification = process.env.DISABLE_EMAIL === 'true' || process.env.NODE_ENV === 'development';
-        
-        if (!user.emailVerified && !skipEmailVerification) {
+        if (!user.emailVerified) {
           throw new Error('メールアドレスが確認されていません。確認メールをご確認ください');
         }
 
