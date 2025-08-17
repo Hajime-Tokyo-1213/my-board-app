@@ -39,8 +39,8 @@ export function sanitizeText(input: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(/'/g, '&#x27;');
+    // スラッシュ(/)のエスケープは削除 - 投稿内容では不要
 }
 
 /**
