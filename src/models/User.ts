@@ -5,7 +5,14 @@ export interface IUser extends mongoose.Document {
   email: string;
   password: string;
   name: string;
+  username?: string;
   bio?: string;
+  avatar?: string;
+  coverImage?: string;
+  followersCount: number;
+  followingCount: number;
+  postsCount: number;
+  isPrivate: boolean;
   emailVerified: Date | null;
   verificationToken: string | null;
   resetPasswordToken: string | null;
@@ -33,10 +40,46 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: 50,
   },
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+    maxlength: 30,
+    match: /^[a-zA-Z0-9_]+$/,
+  },
   bio: {
     type: String,
     maxlength: 200,
     default: '',
+  },
+  avatar: {
+    type: String,
+    default: null,
+  },
+  coverImage: {
+    type: String,
+    default: null,
+  },
+  followersCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  followingCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  postsCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  isPrivate: {
+    type: Boolean,
+    default: false,
   },
   emailVerified: {
     type: Date,
@@ -57,6 +100,11 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
+userSchema.index({ followersCount: -1 });
+userSchema.index({ createdAt: -1 });
 
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

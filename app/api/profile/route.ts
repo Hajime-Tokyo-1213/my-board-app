@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Follow from '@/models/Follow';
 import { authOptions } from '@/lib/auth';
 
 // プロフィール取得
@@ -28,6 +29,12 @@ export async function GET() {
       );
     }
 
+    // フォロー数とフォロワー数をカウント
+    const [followingCount, followersCount] = await Promise.all([
+      user.followingCount ?? Follow.countDocuments({ followerId: user._id }),
+      user.followersCount ?? Follow.countDocuments({ followingId: user._id })
+    ]);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -37,6 +44,8 @@ export async function GET() {
         bio: user.bio || '',
         emailVerified: user.emailVerified,
         createdAt: user.createdAt,
+        followingCount,
+        followersCount,
       }
     });
   } catch (error) {

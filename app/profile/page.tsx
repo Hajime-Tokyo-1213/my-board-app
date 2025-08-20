@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Follow from '@/models/Follow';
 import ProfileView from './ProfileView';
 
 interface UserDocument {
@@ -12,6 +13,8 @@ interface UserDocument {
   bio?: string;
   emailVerified: Date | null;
   createdAt: Date;
+  followingCount?: number;
+  followersCount?: number;
 }
 
 export default async function ProfilePage() {
@@ -31,6 +34,12 @@ export default async function ProfilePage() {
     redirect('/auth/signin');
   }
 
+  // フォロー数とフォロワー数をカウント
+  const [followingCount, followersCount] = await Promise.all([
+    user.followingCount ?? Follow.countDocuments({ followerId: user._id }),
+    user.followersCount ?? Follow.countDocuments({ followingId: user._id })
+  ]);
+
   const userData = {
     id: user._id.toString(),
     email: user.email,
@@ -38,6 +47,8 @@ export default async function ProfilePage() {
     bio: user.bio || '',
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
+    followingCount,
+    followersCount,
   };
 
   return <ProfileView user={userData} />;

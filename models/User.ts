@@ -6,6 +6,11 @@ export interface IUser extends mongoose.Document {
   password: string;
   name: string;
   bio?: string;
+  avatar?: string;
+  followers: string[];
+  following: string[];
+  followersCount: number;
+  followingCount: number;
   emailVerified: Date | null;
   verificationToken: string | null;
   resetPasswordToken: string | null;
@@ -37,6 +42,28 @@ const userSchema = new mongoose.Schema({
     type: String,
     maxlength: 200,
     default: '',
+  },
+  avatar: {
+    type: String,
+    default: null,
+  },
+  followers: [{
+    type: String,
+    ref: 'User'
+  }],
+  following: [{
+    type: String,
+    ref: 'User'
+  }],
+  followersCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  followingCount: {
+    type: Number,
+    default: 0,
+    min: 0
   },
   emailVerified: {
     type: Date,

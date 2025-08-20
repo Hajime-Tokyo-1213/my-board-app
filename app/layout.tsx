@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ThemeProvider from "@/src/providers/ThemeProvider";
+import ThemeRegistry from "@/src/app/registry";
 import SessionWrapper from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
@@ -14,11 +14,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        <meta name="emotion-insertion-point" content="" />
+      </head>
       <body>
         <SessionWrapper>
-          <ThemeProvider>
+          <ThemeRegistry>
             {children}
-          </ThemeProvider>
+          </ThemeRegistry>
         </SessionWrapper>
       </body>
     </html>

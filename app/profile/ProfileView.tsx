@@ -29,6 +29,7 @@ import {
   Description as DescriptionIcon,
   Home as HomeIcon,
   Delete as DeleteIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import UserAvatar from '@/components/UserAvatar';
 
@@ -39,6 +40,8 @@ interface User {
   bio: string;
   emailVerified: Date | null;
   createdAt: Date;
+  followingCount?: number;
+  followersCount?: number;
 }
 
 interface ProfileViewProps {
@@ -153,6 +156,34 @@ export default function ProfileView({ user }: ProfileViewProps) {
               パスワード変更
             </Button>
           </Stack>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box sx={{ display: 'flex', gap: 4, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon sx={{ color: 'text.secondary' }} />
+            <Box>
+              <Typography variant="h5" sx={{ lineHeight: 1, fontWeight: 'bold' }}>
+                {user.followingCount || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                フォロー中
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <GroupIcon sx={{ color: 'text.secondary' }} />
+            <Box>
+              <Typography variant="h5" sx={{ lineHeight: 1, fontWeight: 'bold' }}>
+                {user.followersCount || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                フォロワー
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
         <Divider sx={{ my: 3 }} />

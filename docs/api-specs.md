@@ -44,7 +44,7 @@
 ### ユーザー関連 API
 | メソッド | パス | 説明 | 認証 |
 |----------|------|------|------|
-| GET | /api/users/[id] | ユーザー詳細取得 | - |
+| GET | /api/users/[userId] | ユーザー詳細取得 | - |
 | GET | /api/profile | プロフィール取得 | 🔒 |
 | PUT | /api/profile | プロフィール更新 | 🔒 |
 
@@ -372,7 +372,7 @@ POST /api/posts/[id]/like
 
 #### 3.1 ユーザー詳細取得
 ```
-GET /api/users/[id]
+GET /api/users/[userId]
 ```
 
 **説明**: 指定されたIDのユーザー情報を取得します。

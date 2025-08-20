@@ -22,6 +22,7 @@ import {
   AccountCircle,
   ExitToApp,
   Person,
+  Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import PostForm from '@/components/PostForm';
 import PostCard from '@/components/PostCard';
@@ -187,6 +188,11 @@ export default function Home() {
     router.push('/profile');
   };
 
+  const handleTimeline = () => {
+    handleMenuClose();
+    router.push('/timeline');
+  };
+
   const handleSignOut = () => {
     handleMenuClose();
     signOut({ callbackUrl: '/auth/signin' });
@@ -244,6 +250,9 @@ export default function Home() {
                 open={Boolean(anchorEl)}
                 onClose={handleMenuClose}
               >
+                <MenuItem onClick={handleTimeline}>
+                  <TimelineIcon sx={{ mr: 1 }} /> タイムライン
+                </MenuItem>
                 <MenuItem onClick={handleProfile}>
                   <Person sx={{ mr: 1 }} /> プロフィール
                 </MenuItem>

@@ -17,8 +17,11 @@ import {
   Email as EmailIcon,
   CalendarToday as CalendarIcon,
   Description as DescriptionIcon,
+  Person as PersonIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import UserAvatar from '@/components/UserAvatar';
+import FollowButton from '@/src/components/FollowButton';
 
 interface UserProfileModalProps {
   open: boolean;
@@ -32,6 +35,8 @@ interface UserData {
   email: string;
   bio?: string;
   createdAt: string;
+  followingCount?: number;
+  followersCount?: number;
 }
 
 export default function UserProfileModal({ open, onClose, userId }: UserProfileModalProps) {
@@ -115,7 +120,7 @@ export default function UserProfileModal({ open, onClose, userId }: UserProfileM
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <UserAvatar name={userData.name} size={80} />
-              <Box sx={{ ml: 3 }}>
+              <Box sx={{ ml: 3, flex: 1 }}>
                 <Typography variant="h5" gutterBottom>
                   {userData.name}
                 </Typography>
@@ -123,6 +128,42 @@ export default function UserProfileModal({ open, onClose, userId }: UserProfileM
                   <EmailIcon fontSize="small" />
                   <Typography variant="body2">
                     {userData.email}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ ml: 2 }}>
+                <FollowButton 
+                  userId={userData.id}
+                  userName={userData.name}
+                  variant="contained"
+                  size="medium"
+                />
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon sx={{ color: 'text.secondary' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ lineHeight: 1 }}>
+                    {userData.followingCount || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    フォロー中
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <GroupIcon sx={{ color: 'text.secondary' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ lineHeight: 1 }}>
+                    {userData.followersCount || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    フォロワー
                   </Typography>
                 </Box>
               </Box>

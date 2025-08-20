@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
+import Follow from '@/models/Follow';
 
 interface UserData {
   _id: any;
@@ -8,18 +9,20 @@ interface UserData {
   email: string;
   bio?: string;
   createdAt: Date;
+  followingCount?: number;
+  followersCount?: number;
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     await dbConnect();
 
-    const { id } = await params;
-    const user = await User.findById(id)
-      .select('name email bio createdAt')
+    const { userId } = await params;
+    const user = await User.findById(userId)
+      .select('name email bio createdAt followingCount followersCount')
       .lean() as UserData | null;
 
     if (!user) {
@@ -29,6 +32,12 @@ export async function GET(
       );
     }
 
+    // フォロー数とフォロワー数をカウント（データベースに保存されていない場合のフォールバック）
+    const [followingCount, followersCount] = await Promise.all([
+      user.followingCount ?? Follow.countDocuments({ followerId: user._id }),
+      user.followersCount ?? Follow.countDocuments({ followingId: user._id })
+    ]);
+
     return NextResponse.json({
       data: {
         id: user._id.toString(),
@@ -36,6 +45,8 @@ export async function GET(
         email: user.email,
         bio: user.bio || '',
         createdAt: user.createdAt,
+        followingCount,
+        followersCount,
       }
     });
   } catch (error) {
