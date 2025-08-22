@@ -20,18 +20,33 @@ interface PWAState {
 }
 
 export function usePWA() {
-  const [state, setState] = useState<PWAState>({
-    isInstalled: false,
-    isOffline: false,
-    isUpdateAvailable: false,
-    subscription: null,
-    notificationPermission: 'default'
+  const [state, setState] = useState<PWAState>(() => {
+    // サーバーサイドでは初期値を返す
+    if (typeof window === 'undefined') {
+      return {
+        isInstalled: false,
+        isOffline: false,
+        isUpdateAvailable: false,
+        subscription: null,
+        notificationPermission: 'default'
+      };
+    }
+    // クライアントサイドでは実際の値を取得
+    return {
+      isInstalled: false,
+      isOffline: !navigator.onLine,
+      isUpdateAvailable: false,
+      subscription: null,
+      notificationPermission: 'Notification' in window ? Notification.permission : 'default'
+    };
   });
 
   const [workbox, setWorkbox] = useState<Workbox | null>(null);
 
   // Service Worker登録とWorkbox初期化
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     if ('serviceWorker' in navigator && window.workbox !== undefined) {
       const wb = new Workbox('/sw.js');
       setWorkbox(wb);
@@ -53,6 +68,8 @@ export function usePWA() {
 
   // インストール状態の検知
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const checkInstalled = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
       const isInstalled = isStandalone || window.navigator.standalone || document.referrer.includes('android-app://');
@@ -71,6 +88,8 @@ export function usePWA() {
 
   // オンライン/オフライン状態の監視
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const updateOnlineStatus = () => {
       setState(prev => ({ ...prev, isOffline: !navigator.onLine }));
     };
@@ -88,6 +107,8 @@ export function usePWA() {
 
   // 通知権限の状態を取得
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     if ('Notification' in window) {
       setState(prev => ({ 
         ...prev, 
@@ -108,6 +129,10 @@ export function usePWA() {
 
   // プッシュ通知の購読
   const subscribePush = useCallback(async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      throw new Error('通知はこのブラウザでサポートされていません');
+    }
+
     try {
       // 通知権限をリクエスト
       const permission = await Notification.requestPermission();
@@ -166,6 +191,10 @@ export function usePWA() {
 
   // プッシュ通知の購読解除
   const unsubscribePush = useCallback(async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
@@ -192,6 +221,10 @@ export function usePWA() {
 
   // オフラインデータの同期
   const syncOfflineData = useCallback(async () => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
     if ('sync' in navigator.serviceWorker.registration) {
       try {
         const registration = await navigator.serviceWorker.ready;
@@ -205,13 +238,15 @@ export function usePWA() {
 
   // キャッシュのクリア
   const clearCache = useCallback(async () => {
-    if ('caches' in window) {
-      const cacheNames = await caches.keys();
-      await Promise.all(
-        cacheNames.map(cacheName => caches.delete(cacheName))
-      );
-      console.log('All caches cleared');
+    if (typeof window === 'undefined' || !('caches' in window)) {
+      return;
     }
+
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames.map(cacheName => caches.delete(cacheName))
+    );
+    console.log('All caches cleared');
   }, []);
 
   return {

@@ -1,16 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellOff, X } from 'lucide-react';
 import { usePWA } from '@/hooks/usePWA';
 
 export default function NotificationPermission() {
   const { notificationPermission, subscribePush } = usePWA();
-  const [showPrompt, setShowPrompt] = useState(
-    notificationPermission === 'default'
-  );
+  const [showPrompt, setShowPrompt] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // クライアントサイドでのみ初期化
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setShowPrompt(Notification.permission === 'default');
+    }
+  }, []);
 
   const handleEnableNotifications = async () => {
     setIsLoading(true);
@@ -21,7 +26,7 @@ export default function NotificationPermission() {
       setShowPrompt(false);
       
       // 成功メッセージ
-      if ('Notification' in window && Notification.permission === 'granted') {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('通知が有効になりました', {
           body: '新しい投稿やコメントをお知らせします',
           icon: '/icon-192x192.png',
@@ -39,14 +44,21 @@ export default function NotificationPermission() {
   const handleDismiss = () => {
     setShowPrompt(false);
     // 7日後に再表示
-    localStorage.setItem('notification-prompt-dismissed', Date.now().toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('notification-prompt-dismissed', Date.now().toString());
+    }
   };
+
+  // サーバーサイドレンダリング時は何も表示しない
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   // 既に許可済み、拒否済み、または非表示の場合は表示しない
   if (
+    !('Notification' in window) ||
     notificationPermission !== 'default' ||
-    !showPrompt ||
-    !('Notification' in window)
+    !showPrompt
   ) {
     return null;
   }
