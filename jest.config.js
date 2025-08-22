@@ -8,11 +8,13 @@ const createJestConfig = nextJest({
 const baseConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
-    '^@/models/(.*)$': '<rootDir>/src/models/$1',
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@/components/(.*)$': '<rootDir>/src/components/$1',
-    '^@/lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@/models/(.*)$': '<rootDir>/models/$1',
+    '^@/components/(.*)$': '<rootDir>/components/$1',
+    '^@/lib/(.*)$': '<rootDir>/lib/$1',
+    '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
+    '^@/utils/(.*)$': '<rootDir>/utils/$1',
     '^@/app/(.*)$': '<rootDir>/app/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/e2e/'],
   moduleDirectories: ['node_modules', '<rootDir>/'],

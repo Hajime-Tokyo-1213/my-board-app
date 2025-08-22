@@ -1,0 +1,54 @@
+{
+  "timestamp": "2025-08-22T00:37:54.103Z",
+  "url": "http://localhost:3000",
+  "tests": [
+    {
+      "name": "Web App Manifest",
+      "status": "PASS",
+      "details": {
+        "name": "My Board App - SNS掲示板",
+        "short_name": "Board App",
+        "display": "standalone",
+        "icons": 8
+      }
+    },
+    {
+      "name": "Service Worker Registration",
+      "status": "FAIL",
+      "error": "No Service Worker registration found"
+    },
+    {
+      "name": "Cache Storage",
+      "status": "PASS",
+      "details": {
+        "available": true,
+        "cacheNames": [],
+        "cacheDetails": {}
+      }
+    },
+    {
+      "name": "Notification API",
+      "status": "PASS",
+      "details": {
+        "available": true,
+        "permission": "default"
+      }
+    },
+    {
+      "name": "IndexedDB",
+      "status": "PASS",
+      "details": {
+        "available": true,
+        "databases": []
+      }
+    },
+    {
+      "name": "Offline Page",
+      "status": "PASS",
+      "details": {
+        "title": "オフライン - Board App",
+        "hasOfflineText": true
+      }
+    }
+  ]
+}

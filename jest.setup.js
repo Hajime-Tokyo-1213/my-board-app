@@ -157,6 +157,21 @@ if (typeof window !== 'undefined') {
       dispatchEvent: jest.fn(),
     })),
   });
+  
+  // URL.createObjectURL と URL.revokeObjectURL のモック
+  global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+  global.URL.revokeObjectURL = jest.fn();
+
+  // IntersectionObserver のモック
+  global.IntersectionObserver = class IntersectionObserver {
+    constructor() {}
+    disconnect() {}
+    observe() {}
+    unobserve() {}
+    takeRecords() {
+      return [];
+    }
+  };
 }
 
 // Suppress console errors in tests
@@ -176,3 +191,59 @@ beforeAll(() => {
 afterAll(() => {
   console.error = originalError
 })
+
+// Mock mongoose
+jest.mock('mongoose', () => {
+  const actualMongoose = jest.requireActual('mongoose');
+  return {
+    ...actualMongoose,
+    connect: jest.fn().mockResolvedValue({}),
+    connection: {
+      readyState: 1,
+    },
+    Schema: class Schema {
+      constructor(definition, options) {
+        this.definition = definition;
+        this.options = options;
+        this.methods = {};
+        this.statics = {};
+        this.virtual = jest.fn().mockReturnThis();
+        this.pre = jest.fn().mockReturnThis();
+        this.post = jest.fn().mockReturnThis();
+        this.index = jest.fn().mockReturnThis();
+      }
+      static Types = {
+        ObjectId: String,
+        Mixed: Object,
+      };
+    },
+    model: jest.fn((name) => {
+      const Model = jest.fn();
+      Model.find = jest.fn().mockReturnThis();
+      Model.findOne = jest.fn().mockReturnThis();
+      Model.findById = jest.fn().mockReturnThis();
+      Model.findByIdAndUpdate = jest.fn().mockReturnThis();
+      Model.findByIdAndDelete = jest.fn().mockReturnThis();
+      Model.create = jest.fn();
+      Model.updateOne = jest.fn();
+      Model.deleteOne = jest.fn();
+      Model.countDocuments = jest.fn();
+      Model.aggregate = jest.fn().mockReturnThis();
+      Model.sort = jest.fn().mockReturnThis();
+      Model.limit = jest.fn().mockReturnThis();
+      Model.skip = jest.fn().mockReturnThis();
+      Model.select = jest.fn().mockReturnThis();
+      Model.populate = jest.fn().mockReturnThis();
+      Model.exec = jest.fn();
+      return Model;
+    }),
+    models: {},
+  };
+});
+
+// Mock bcryptjs
+jest.mock('bcryptjs', () => ({
+  hash: jest.fn().mockResolvedValue('hashed_password'),
+  compare: jest.fn().mockResolvedValue(true),
+  genSalt: jest.fn().mockResolvedValue('salt'),
+}));
