@@ -9,10 +9,12 @@ export default function NotificationPermission() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // クライアントサイドでのみ初期化
+  // クライアントサイドでのみ実行
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
+    setIsMounted(true);
+    if ('Notification' in window) {
       setShowPrompt(Notification.permission === 'default');
     }
   }, []);
@@ -26,7 +28,7 @@ export default function NotificationPermission() {
       setShowPrompt(false);
       
       // 成功メッセージ
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('通知が有効になりました', {
           body: '新しい投稿やコメントをお知らせします',
           icon: '/icon-192x192.png',
@@ -44,22 +46,11 @@ export default function NotificationPermission() {
   const handleDismiss = () => {
     setShowPrompt(false);
     // 7日後に再表示
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('notification-prompt-dismissed', Date.now().toString());
-    }
+    localStorage.setItem('notification-prompt-dismissed', Date.now().toString());
   };
 
-  // サーバーサイドレンダリング時は何も表示しない
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  // 既に許可済み、拒否済み、または非表示の場合は表示しない
-  if (
-    !('Notification' in window) ||
-    notificationPermission !== 'default' ||
-    !showPrompt
-  ) {
+  // マウント前またはNotificationが使えない、表示条件を満たさない場合は何も表示しない
+  if (!isMounted || !showPrompt || notificationPermission !== 'default') {
     return null;
   }
 
