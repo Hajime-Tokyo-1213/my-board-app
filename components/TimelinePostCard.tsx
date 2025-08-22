@@ -161,11 +161,20 @@ export default function TimelinePostCard({
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
                 onClose={handleMenuClose}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
               >
                 <MenuItem onClick={handleEdit}>
                   <EditIcon fontSize="small" sx={{ mr: 1 }} />
                   編集
                 </MenuItem>
+                <Divider />
                 <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
                   <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
                   削除

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/mongodb';
 import Post from '@/models/Post';
 import { authOptions } from '@/lib/auth';
+import { createLikeNotification } from '@/lib/notifications';
 
 // いいねを追加/削除
 export async function POST(
@@ -94,6 +95,21 @@ export async function POST(
     } catch (saveError) {
       console.error('Error saving post:', saveError);
       throw new Error(`Failed to save post: ${(saveError as Error).message}`);
+    }
+    
+    // いいねした場合のみ通知を作成
+    if (liked && post.authorId && post.authorId.toString() !== userId) {
+      const currentUser = await dbConnect().then(() => 
+        session.user.name || 'ユーザー'
+      );
+      
+      await createLikeNotification(
+        post.authorId,
+        userId,
+        currentUser,
+        post._id,
+        post.title || '無題の投稿'
+      );
     }
     
     console.log('After operation - Post likes:', post.likes);

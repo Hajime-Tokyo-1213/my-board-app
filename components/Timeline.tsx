@@ -1,141 +1,66 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useInView } from 'react-intersection-observer';
-import {
-  Box,
-  Container,
-  Typography,
-  CircularProgress,
-  Alert,
-  Button,
-  Paper,
-} from '@mui/material';
-import { 
-  Refresh as RefreshIcon,
-  Home as HomeIcon,
-} from '@mui/icons-material';
-import TimelinePostCard from './TimelinePostCard';
+import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import {
+  Container,
+  Paper,
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Dialog,
+  IconButton,
+} from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import CloseIcon from '@mui/icons-material/Close';
+import InfiniteScroll from './InfiniteScroll';
+import UserProfileModal from './UserProfileModal';
 
-interface Post {
-  id: string;
-  title?: string;
-  content: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  createdAt: string;
-  updatedAt: string;
-  likesCount: number;
-  commentsCount: number;
-  isLiked: boolean;
+interface TimelineProps {
+  userId?: string;
+  hashtag?: string;
+  showHeader?: boolean;
+  enableVirtualization?: boolean;
 }
 
-export default function Timeline() {
+export default function Timeline({
+  userId,
+  hashtag,
+  showHeader = true,
+  enableVirtualization = true,
+}: TimelineProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const { ref, inView } = useInView({
-    threshold: 0,
-    rootMargin: '100px',
-  });
-
-  // 投稿を取得する関数
-  const fetchPosts = useCallback(async (pageNum: number, isRefresh: boolean = false) => {
-    if (loading || !session) return;
-    
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/timeline?page=${pageNum}&limit=10`);
-      
-      if (!response.ok) {
-        throw new Error('タイムラインの取得に失敗しました');
-      }
-
-      const data = await response.json();
-      
-      if (isRefresh) {
-        setPosts(data.posts);
-      } else {
-        setPosts(prev => [...prev, ...data.posts]);
-      }
-      
-      setHasMore(data.pagination.hasMore);
-      setPage(pageNum);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      setLoading(false);
-      setInitialLoading(false);
-    }
-  }, [session, loading]);
-
-  // 初回読み込み
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      fetchPosts(1, true);
-    } else if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    }
-  }, [status, session]);
-
-  // 無限スクロール
-  useEffect(() => {
-    if (inView && hasMore && !loading && !initialLoading) {
-      fetchPosts(page + 1);
-    }
-  }, [inView, hasMore, loading, initialLoading, page]);
-
-  const handleRefresh = () => {
-    setPage(1);
-    fetchPosts(1, true);
-  };
-
-  const handleLike = (postId: string) => {
-    // いいねの更新は既にTimelinePostCard内で処理されている
-  };
-
-  const handleDelete = async (postId: string) => {
-    if (!confirm('この投稿を削除してもよろしいですか？')) return;
-
-    try {
-      const response = await fetch(`/api/posts/${postId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setPosts(posts.filter(post => post.id !== postId));
-      } else {
-        alert('投稿の削除に失敗しました');
-      }
-    } catch (error) {
-      console.error('削除エラー:', error);
-      alert('エラーが発生しました');
-    }
-  };
-
-  const handleUserClick = (userId: string) => {
-    setSelectedUserId(userId);
+  // ユーザークリック処理
+  const handleUserClick = (clickedUserId: string) => {
+    setSelectedUserId(clickedUserId);
     setUserModalOpen(true);
   };
 
+  // ハッシュタグクリック処理
+  const handleHashtagClick = (tag: string) => {
+    router.push(`/search?hashtag=${encodeURIComponent(tag)}`);
+  };
+
+  // ホームへ戻る
   const handleBackToTop = () => {
     router.push('/');
   };
 
-  if (initialLoading) {
+  // リフレッシュ
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  // 認証チェック
+  if (status === 'loading') {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress />
@@ -143,95 +68,84 @@ export default function Timeline() {
     );
   }
 
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ mb: 2 }}>
-          <Button
-            variant="text"
-            startIcon={<HomeIcon />}
-            onClick={handleBackToTop}
-            sx={{ mb: 2 }}
-          >
-            掲示板トップへ戻る
-          </Button>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" component="h1">
-            タイムライン
-          </Typography>
-          <Button
-            startIcon={<RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            更新
-          </Button>
-        </Box>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {posts.length === 0 ? (
-          <Box>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              タイムラインに表示する投稿がありません。
-            </Alert>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              タイムラインには、フォローしたユーザーと自分の投稿が時系列で表示されます。
+      {showHeader && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="text"
+              startIcon={<HomeIcon />}
+              onClick={handleBackToTop}
+              sx={{ mb: 1 }}
+            >
+              ホームに戻る
+            </Button>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
+              {hashtag ? `#${hashtag}` : userId ? 'ユーザータイムライン' : 'タイムライン'}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              • 他のユーザーをフォローしてみましょう
-              • 自分で投稿を作成してみましょう
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            {posts.map((post) => (
-              <TimelinePostCard
-                key={post.id}
-                {...post}
-                onLike={handleLike}
-                onDelete={handleDelete}
-                onUserClick={handleUserClick}
-              />
-            ))}
-
-            {hasMore && (
-              <Box ref={ref} sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                {loading && <CircularProgress />}
-              </Box>
-            )}
-
-            {!hasMore && posts.length > 0 && (
-              <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 3 }}>
-                すべての投稿を読み込みました
+            {!hashtag && !userId && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                フォローしているユーザーの投稿を表示
               </Typography>
             )}
-          </>
-        )}
-      </Paper>
-
-      {/* ユーザー情報モーダル */}
-      {selectedUserId && (
-        <UserProfileModal
-          open={userModalOpen}
-          onClose={() => {
-            setUserModalOpen(false);
-            setSelectedUserId(null);
-          }}
-          userId={selectedUserId}
-        />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={handleRefresh}
+              size="small"
+            >
+              更新
+            </Button>
+          </Box>
+        </Paper>
       )}
+
+      {/* 無限スクロールコンポーネント */}
+      <InfiniteScroll
+        key={refreshKey}
+        userId={userId}
+        hashtag={hashtag}
+        enableVirtualization={enableVirtualization}
+        onUserClick={handleUserClick}
+        onHashtagClick={handleHashtagClick}
+      />
+
+      {/* ユーザープロフィールモーダル */}
+      <Dialog
+        open={userModalOpen}
+        onClose={() => setUserModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <Box sx={{ position: 'relative' }}>
+          <IconButton
+            onClick={() => setUserModalOpen(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              zIndex: 1,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {selectedUserId && (
+            <UserProfileModal
+              userId={selectedUserId}
+              open={userModalOpen}
+              onClose={() => setUserModalOpen(false)}
+            />
+          )}
+        </Box>
+      </Dialog>
     </Container>
   );
 }
-
-// UserProfileModalのインポートが必要
-import dynamic from 'next/dynamic';
-const UserProfileModal = dynamic(() => import('@/components/UserProfileModal'), {
-  ssr: false,
-});

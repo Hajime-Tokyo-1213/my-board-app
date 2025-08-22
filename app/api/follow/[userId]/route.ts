@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Follow from "@/models/Follow";
+import { createFollowNotification } from "@/lib/notifications";
 
 // POSTメソッド - フォローする
 export async function POST(
@@ -63,7 +64,7 @@ export async function POST(
     });
 
     // ユーザーのフォロー情報を更新
-    await User.findByIdAndUpdate(currentUserId, {
+    const currentUser = await User.findByIdAndUpdate(currentUserId, {
       $addToSet: { following: targetUserId },
       $inc: { followingCount: 1 }
     });
@@ -72,6 +73,13 @@ export async function POST(
       $addToSet: { followers: currentUserId },
       $inc: { followersCount: 1 }
     });
+
+    // 通知を作成
+    await createFollowNotification(
+      targetUserId,
+      currentUserId,
+      currentUser?.name || "ユーザー"
+    );
 
     return NextResponse.json({
       success: true,

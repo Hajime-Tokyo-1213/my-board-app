@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,7 +10,6 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Pagination,
   Chip,
   AppBar,
   Toolbar,
@@ -25,43 +24,23 @@ import {
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
 import PostForm from '@/components/PostForm';
-import PostCard from '@/components/PostCard';
 import { signOut } from 'next-auth/react';
 import UserAvatar from '@/components/UserAvatar';
 import UserProfileModal from '@/components/UserProfileModal';
+import NotificationBell from '@/components/NotificationBell';
+import HashtagDashboard from '@/components/HashtagDashboard';
+import InfiniteScroll from '@/components/InfiniteScroll';
 
-interface Post {
-  _id: string;
-  title: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  authorEmail: string;
-  authorImage?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaginationInfo {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  limit: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
 
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState('');
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -69,33 +48,6 @@ export default function Home() {
     }
   }, [status, router]);
 
-  const fetchPosts = useCallback(async (page: number = 1) => {
-    try {
-      const response = await fetch(`/api/posts?page=${page}&limit=10`);
-      if (response.status === 401) {
-        router.push('/auth/signin');
-        return;
-      }
-      const data = await response.json();
-      if (data.success) {
-        setPosts(data.data);
-        setPagination(data.pagination);
-      } else {
-        setError(data.error || '投稿の取得に失敗しました');
-      }
-    } catch (err) {
-      console.error('Failed to fetch posts:', err);
-      setError('サーバーエラーが発生しました');
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchPosts(currentPage);
-    }
-  }, [status, currentPage, fetchPosts]);
 
   const handleCreatePost = async (title: string, content: string) => {
     try {
@@ -114,8 +66,8 @@ export default function Home() {
       
       const data = await response.json();
       if (data.success) {
-        fetchPosts(1);
-        setCurrentPage(1);
+        // 投稿成功後、リストを更新
+        setRefreshKey(prev => prev + 1);
       } else {
         setError(data.error || '投稿の作成に失敗しました');
       }
@@ -125,55 +77,6 @@ export default function Home() {
     }
   };
 
-  const handleUpdatePost = async (id: string, title: string, content: string) => {
-    try {
-      const response = await fetch(`/api/posts/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ title, content }),
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setPosts(posts.map(post => 
-          post._id === id ? data.data : post
-        ));
-      } else {
-        setError(data.error || '投稿の更新に失敗しました');
-      }
-    } catch (err) {
-      console.error('Failed to update post:', err);
-      setError('サーバーエラーが発生しました');
-    }
-  };
-
-  const handleDeletePost = async (id: string) => {
-    if (!confirm('この投稿を削除してもよろしいですか？')) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/posts/${id}`, {
-        method: 'DELETE',
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        fetchPosts(currentPage);
-      } else {
-        setError(data.error || '投稿の削除に失敗しました');
-      }
-    } catch (err) {
-      console.error('Failed to delete post:', err);
-      setError('サーバーエラーが発生しました');
-    }
-  };
-
-  const handlePageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setCurrentPage(value);
-  };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -208,6 +111,16 @@ export default function Home() {
     setSelectedUserId(null);
   };
 
+  const handleHashtagClick = (hashtag: string) => {
+    setSelectedHashtag(hashtag);
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleClearHashtagFilter = () => {
+    setSelectedHashtag(null);
+    setRefreshKey(prev => prev + 1);
+  };
+
 
   if (status === 'loading') {
     return (
@@ -231,6 +144,7 @@ export default function Home() {
           
           {session?.user && (
             <>
+              <NotificationBell />
               <Typography variant="body2" sx={{ mr: 2 }}>
                 {session.user.name || session.user.email}
               </Typography>
@@ -322,60 +236,43 @@ export default function Home() {
 
         <PostForm onSubmit={handleCreatePost} />
 
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : posts.length === 0 ? (
-          <Paper 
-            sx={{ 
-              p: { xs: 2, sm: 3 }, 
-              textAlign: 'center',
-              borderRadius: 2
-            }}
-          >
-            <Typography color="text.secondary">
-              まだ投稿がありません。最初の投稿をしてみましょう！
-            </Typography>
-          </Paper>
-        ) : (
-          <Box>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 2,
-                fontSize: { xs: '1.1rem', sm: '1.25rem' },
-                fontWeight: 600
-              }}
-            >
-              投稿一覧 ({pagination?.totalCount || 0}件)
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {posts.map((post) => (
-                <PostCard
-                  key={post._id}
-                  post={post}
-                  onDelete={handleDeletePost}
-                  onUpdate={handleUpdatePost}
-                  currentUserId={session?.user?.id}
-                  onUserClick={handleUserClick}
-                />
-              ))}
+        {/* ハッシュタグダッシュボード */}
+        <Box sx={{ my: 3 }}>
+          <HashtagDashboard 
+            compact 
+            showSearch={true}
+            onHashtagClick={handleHashtagClick}
+            selectedHashtag={selectedHashtag}
+          />
+        </Box>
+
+        {/* 無限スクロール */}
+        <Box>
+          {selectedHashtag && (
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" color="primary">
+                #{selectedHashtag} の検索結果
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleClearHashtagFilter}
+              >
+                フィルターをクリア
+              </Button>
             </Box>
-            
-            {pagination && pagination.totalPages > 1 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                <Pagination
-                  count={pagination.totalPages}
-                  page={currentPage}
-                  onChange={handlePageChange}
-                  color="primary"
-                  size="large"
-                />
-              </Box>
-            )}
-          </Box>
-        )}
+          )}
+          <InfiniteScroll
+            key={refreshKey}
+            hashtag={selectedHashtag || undefined}
+            enableVirtualization={false}
+            showTitle={!selectedHashtag}
+            showPostCount={true}
+            usePostCard={true}
+            onUserClick={handleUserClick}
+            onHashtagClick={handleHashtagClick}
+          />
+        </Box>
       </Container>
       
       <UserProfileModal

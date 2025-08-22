@@ -15,9 +15,12 @@ import {
   Avatar,
   Chip,
   IconButton,
+  ImageList,
+  ImageListItem,
 } from '@mui/material';
-import { ArrowBack, Edit, Delete, Favorite, FavoriteBorder } from '@mui/icons-material';
+import { ArrowBack, Edit, Delete, Favorite, FavoriteBorder, Comment } from '@mui/icons-material';
 import UserAvatar from '@/components/UserAvatar';
+import CommentSection from '@/components/CommentSection';
 
 interface Post {
   _id: string;
@@ -31,6 +34,14 @@ interface Post {
   updatedAt: string;
   likes?: string[];
   likesCount?: number;
+  commentsCount?: number;
+  images?: {
+    id: string;
+    url: string;
+    thumbnailUrl: string;
+    mediumUrl: string;
+    largeUrl: string;
+  }[];
 }
 
 export default function PostDetailPage() {
@@ -213,17 +224,25 @@ export default function PostDetailPage() {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <IconButton
-              onClick={handleLike}
-              disabled={isLiking}
-              color={isLiked ? "error" : "default"}
-            >
-              {isLiked ? <Favorite /> : <FavoriteBorder />}
-            </IconButton>
-            <Typography variant="body2" color="text.secondary">
-              {likesCount} いいね
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <IconButton
+                onClick={handleLike}
+                disabled={isLiking}
+                color={isLiked ? "error" : "default"}
+              >
+                {isLiked ? <Favorite /> : <FavoriteBorder />}
+              </IconButton>
+              <Typography variant="body2" color="text.secondary">
+                {likesCount} いいね
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Comment color="action" />
+              <Typography variant="body2" color="text.secondary">
+                {post.commentsCount || 0} コメント
+              </Typography>
+            </Box>
           </Box>
 
           {isAuthor && (
@@ -251,9 +270,39 @@ export default function PostDetailPage() {
 
         <Divider sx={{ mb: 3 }} />
 
-        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', mb: 3 }}>
           {post.content}
         </Typography>
+
+        {/* 画像表示 */}
+        {post.images && post.images.length > 0 && (
+          <Box sx={{ mt: 3, mb: 3 }}>
+            <ImageList 
+              sx={{ width: '100%', height: 'auto' }} 
+              cols={post.images.length === 1 ? 1 : post.images.length === 2 ? 2 : 3} 
+              gap={8}
+            >
+              {post.images.map((image, index) => (
+                <ImageListItem key={image.id}>
+                  <img
+                    src={image.largeUrl || image.url}
+                    alt={`投稿画像 ${index + 1}`}
+                    loading="lazy"
+                    style={{
+                      cursor: 'pointer',
+                      borderRadius: '8px',
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'cover',
+                      maxHeight: '600px'
+                    }}
+                    onClick={() => window.open(image.url, '_blank')}
+                  />
+                </ImageListItem>
+              ))}
+            </ImageList>
+          </Box>
+        )}
 
         {post.updatedAt !== post.createdAt && (
           <Typography variant="caption" color="text.secondary" sx={{ mt: 3, display: 'block' }}>
@@ -261,6 +310,8 @@ export default function PostDetailPage() {
           </Typography>
         )}
       </Paper>
+
+      <CommentSection postId={params.id as string} initialExpanded={true} />
     </Container>
   );
 }

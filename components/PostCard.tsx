@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
 import {
   Card,
   CardContent,
@@ -13,6 +14,9 @@ import {
   Stack,
   Chip,
   Avatar,
+  ImageList,
+  ImageListItem,
+  Skeleton,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -20,7 +24,10 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import PersonIcon from '@mui/icons-material/Person';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import CommentIcon from '@mui/icons-material/Comment';
 import UserAvatar from '@/components/UserAvatar';
+import { HashtagLink, HashtagChips } from '@/components/HashtagLink';
+import OptimizedImage from './OptimizedImage';
 
 interface PostCardProps {
   post: {
@@ -35,6 +42,15 @@ interface PostCardProps {
     updatedAt: string;
     likes?: string[];
     likesCount?: number;
+    commentsCount?: number;
+    hashtags?: string[];
+    images?: {
+      id: string;
+      url: string;
+      thumbnailUrl: string;
+      mediumUrl: string;
+      largeUrl: string;
+    }[];
   };
   onDelete: (id: string) => void;
   onUpdate: (id: string, title: string, content: string) => void;
@@ -129,9 +145,9 @@ export default function PostCard({ post, onDelete, onUpdate, currentUserId, onUs
       <CardContent>
         <Box>
           {/* タイトル */}
-          <Typography variant="h6" component="h2" gutterBottom>
-            {post.title}
-          </Typography>
+          <Box sx={{ mb: 1 }}>
+            <HashtagLink text={post.title} variant="h6" />
+          </Box>
           
           {/* 投稿者情報 */}
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -192,20 +208,51 @@ export default function PostCard({ post, onDelete, onUpdate, currentUserId, onUs
           </Box>
 
           {/* 投稿内容 */}
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              whiteSpace: 'pre-wrap', 
-              mb: 2,
-              color: 'text.secondary',
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {post.content}
-          </Typography>
+          <Box sx={{ mb: 2 }}>
+            <HashtagLink 
+              text={post.content} 
+              variant="body1" 
+              color="text.secondary"
+              maxLines={3}
+            />
+          </Box>
+
+          {/* 画像表示 - 最適化済み */}
+          {post.images && post.images.length > 0 && (
+            <Box sx={{ mb: 2 }}>
+              <ImageList 
+                sx={{ width: '100%', height: 'auto' }} 
+                cols={post.images.length === 1 ? 1 : 2} 
+                gap={8}
+              >
+                {post.images.map((image, index) => (
+                  <ImageListItem key={image.id}>
+                    <Box
+                      sx={{
+                        cursor: 'pointer',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        width: '100%',
+                        maxHeight: '400px',
+                        position: 'relative',
+                      }}
+                      onClick={() => window.open(image.largeUrl || image.url, '_blank')}
+                    >
+                      <OptimizedImage
+                        src={image.mediumUrl || image.url}
+                        alt={`投稿画像 ${index + 1}`}
+                        aspectRatio="16/9"
+                        transformation="medium"
+                        enableLazyLoad={true}
+                        showSkeleton={true}
+                        sizes={post.images.length === 1 ? "100vw" : "50vw"}
+                      />
+                    </Box>
+                  </ImageListItem>
+                ))}
+              </ImageList>
+            </Box>
+          )}
 
           {/* アクション */}
           <Stack direction="row" spacing={1} alignItems="center">
@@ -219,6 +266,16 @@ export default function PostCard({ post, onDelete, onUpdate, currentUserId, onUs
             </IconButton>
             <Typography variant="body2" color="text.secondary">
               {likesCount}
+            </Typography>
+            
+            <IconButton
+              size="small"
+              onClick={() => router.push(`/posts/${post._id}`)}
+            >
+              <CommentIcon />
+            </IconButton>
+            <Typography variant="body2" color="text.secondary">
+              {post.commentsCount || 0}
             </Typography>
             
             <Button
@@ -251,6 +308,11 @@ export default function PostCard({ post, onDelete, onUpdate, currentUserId, onUs
             )}
           </Stack>
         </Box>
+        
+        {/* ハッシュタグ表示 */}
+        {post.hashtags && post.hashtags.length > 0 && (
+          <HashtagChips hashtags={post.hashtags} size="small" />
+        )}
       </CardContent>
     </Card>
   );
