@@ -2,10 +2,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
-  "installCommand": "npm ci",
+  "installCommand": "npm ci --force",
   "framework": "nextjs",
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "FORCE_REBUILD": "1"
   },
   "build": {
     "env": {
