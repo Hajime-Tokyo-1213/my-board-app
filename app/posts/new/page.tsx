@@ -16,8 +16,8 @@ import {
   Divider,
 } from '@mui/material';
 import { ArrowBack, Tag, Image as ImageIcon } from '@mui/icons-material';
-import { extractHashtags } from '@/app/utils/hashtag';
-import ImageUploader from '@/components/ImageUploader';
+import { extractHashtags } from '../../utils/hashtag';
+import ImageUploader from '../../../components/ImageUploader';
 
 export default function NewPostPage() {
   const { data: session, status } = useSession();

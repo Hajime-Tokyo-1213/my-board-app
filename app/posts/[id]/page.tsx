@@ -19,8 +19,8 @@ import {
   ImageListItem,
 } from '@mui/material';
 import { ArrowBack, Edit, Delete, Favorite, FavoriteBorder, Comment } from '@mui/icons-material';
-import UserAvatar from '@/components/UserAvatar';
-import CommentSection from '@/components/CommentSection';
+import UserAvatar from '../../../components/UserAvatar';
+import CommentSection from '../../../components/CommentSection';
 
 interface Post {
   _id: string;

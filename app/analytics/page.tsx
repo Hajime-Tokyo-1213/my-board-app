@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import AnalyticsDashboard from '@/components/AnalyticsDashboard';
+import AnalyticsDashboard from '../../components/AnalyticsDashboard';
 
 export const metadata: Metadata = {
   title: '分析ダッシュボード | My Board App',

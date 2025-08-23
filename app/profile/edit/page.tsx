@@ -18,7 +18,7 @@ import {
   Cancel as CancelIcon,
   Home as HomeIcon,
 } from '@mui/icons-material';
-import UserAvatar from '@/components/UserAvatar';
+import UserAvatar from '../../../components/UserAvatar';
 
 export default function ProfileEditPage() {
   const router = useRouter();

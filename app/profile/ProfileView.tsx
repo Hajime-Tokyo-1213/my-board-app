@@ -31,7 +31,7 @@ import {
   Delete as DeleteIcon,
   Group as GroupIcon,
 } from '@mui/icons-material';
-import UserAvatar from '@/components/UserAvatar';
+import UserAvatar from '../../components/UserAvatar';
 
 interface User {
   id: string;

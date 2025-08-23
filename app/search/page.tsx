@@ -25,8 +25,8 @@ import {
   Whatshot,
   TrendingUp,
 } from '@mui/icons-material';
-import PostCard from '@/components/PostCard';
-import HashtagSearchBox from '@/components/HashtagSearchBox';
+import PostCard from '../../components/PostCard';
+import HashtagSearchBox from '../../components/HashtagSearchBox';
 import Link from 'next/link';
 
 interface Post {
