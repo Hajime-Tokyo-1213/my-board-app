@@ -4,13 +4,15 @@
 
 以下の環境変数をVercelのプロジェクト設定に追加してください：
 
-### 1. Cloudinary設定（重要：画像表示に必要）
+### 1. Cloudinary設定（重要：画像アップロードと表示に必須）
 ```
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=du1egut5n
 CLOUDINARY_CLOUD_NAME=du1egut5n
 CLOUDINARY_API_KEY=111937158928995
 CLOUDINARY_API_SECRET=hCl0AS4Y5sI1peRgtog4xBlZOBk
 ```
+
+**重要**: これらの環境変数がないと画像のアップロードと表示が動作しません。
 
 ### 2. MongoDB設定
 ```
@@ -59,4 +61,12 @@ VAPID_PRIVATE_KEY=DebzeiB3Mi2_CBFRRTUj6cW0ROnJTJgR73trAVwm384
 
 - `NEXT_PUBLIC_`プレフィックスがついた環境変数はクライアントサイドで使用されます
 - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`は画像表示に必須です
+- すべてのCloudinary関連の環境変数は画像機能に必須です
 - 環境変数を追加・変更した後は必ず再デプロイが必要です
+
+## デバッグ方法
+
+環境変数が正しく設定されているか確認するには：
+1. https://app.teqham.com/api/debug/cloudinary にアクセス
+2. 各環境変数が "Set" になっているか確認
+3. 問題がある場合は、Vercelダッシュボードで環境変数を再確認
