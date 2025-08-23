@@ -4,7 +4,7 @@ import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState } from 'react';
-import ThemeRegistry from '@/src/app/registry';
+import ThemeRegistry from '../src/app/registry';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // QueryClientインスタンスを状態として保持（シングルトン）

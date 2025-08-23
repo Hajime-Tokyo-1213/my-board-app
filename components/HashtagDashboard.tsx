@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Grid, Box } from '@mui/material';
-import TagCloud from '@/components/TagCloud';
-import TrendingTags from '@/components/TrendingTags';
-import HashtagSearchBox from '@/components/HashtagSearchBox';
+import TagCloud from './TagCloud';
+import TrendingTags from './TrendingTags';
+import HashtagSearchBox from './HashtagSearchBox';
 
 interface HashtagDashboardProps {
   showSearch?: boolean;

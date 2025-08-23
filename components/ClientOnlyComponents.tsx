@@ -4,16 +4,16 @@ import dynamic from 'next/dynamic';
 
 // クライアントサイドでのみレンダリングするコンポーネント
 export const InstallPrompt = dynamic(
-  () => import('@/components/InstallPrompt'),
+  () => import('./InstallPrompt'),
   { ssr: false }
 );
 
 export const NotificationPermission = dynamic(
-  () => import('@/components/NotificationPermission'),
+  () => import('./NotificationPermission'),
   { ssr: false }
 );
 
 export const OfflineIndicator = dynamic(
-  () => import('@/components/OfflineIndicator'),
+  () => import('./OfflineIndicator'),
   { ssr: false }
 );
