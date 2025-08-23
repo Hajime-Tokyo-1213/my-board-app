@@ -305,15 +305,18 @@ const NotificationBell: React.FC = () => {
                       </Box>
                     }
                     secondary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}
+                      >
                         {notification.read && <CheckCircle sx={{ fontSize: 14, color: 'success.main' }} />}
-                        <Typography variant="caption" color="text.secondary">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true,
-                            locale: ja,
-                          })}
-                        </Typography>
-                      </Box>
+                        {formatDistanceToNow(new Date(notification.createdAt), {
+                          addSuffix: true,
+                          locale: ja,
+                        })}
+                      </Typography>
                     }
                   />
                 </ListItem>
