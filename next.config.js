@@ -282,7 +282,6 @@ const nextConfig = {
   compress: true,
   
   // SWC Minifier の設定（Terser より高速）
-  swcMinify: true,
 };
 
 // Bundle Analyzer の設定（必要に応じて）

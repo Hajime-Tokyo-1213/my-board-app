@@ -24,13 +24,13 @@ import {
   Timeline as TimelineIcon,
   Dashboard as DashboardIcon,
 } from '@mui/icons-material';
-import PostForm from '@/components/PostForm';
+import PostForm from '../components/PostForm';
 import { signOut } from 'next-auth/react';
-import UserAvatar from '@/components/UserAvatar';
-import UserProfileModal from '@/components/UserProfileModal';
-import NotificationBell from '@/components/NotificationBell';
-import HashtagDashboard from '@/components/HashtagDashboard';
-import InfiniteScroll from '@/components/InfiniteScroll';
+import UserAvatar from '../components/UserAvatar';
+import UserProfileModal from '../components/UserProfileModal';
+import NotificationBell from '../components/NotificationBell';
+import HashtagDashboard from '../components/HashtagDashboard';
+import InfiniteScroll from '../components/InfiniteScroll';
 
 
 export default function Home() {
