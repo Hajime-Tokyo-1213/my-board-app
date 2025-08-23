@@ -22,6 +22,7 @@ import {
   ExitToApp,
   Person,
   Timeline as TimelineIcon,
+  Dashboard as DashboardIcon,
 } from '@mui/icons-material';
 import PostForm from '@/components/PostForm';
 import { signOut } from 'next-auth/react';
@@ -96,6 +97,11 @@ export default function Home() {
     router.push('/timeline');
   };
 
+  const handleDashboard = () => {
+    handleMenuClose();
+    router.push('/analytics');
+  };
+
   const handleSignOut = () => {
     handleMenuClose();
     signOut({ callbackUrl: '/auth/signin' });
@@ -166,6 +172,9 @@ export default function Home() {
               >
                 <MenuItem onClick={handleTimeline}>
                   <TimelineIcon sx={{ mr: 1 }} /> タイムライン
+                </MenuItem>
+                <MenuItem onClick={handleDashboard}>
+                  <DashboardIcon sx={{ mr: 1 }} /> ダッシュボード
                 </MenuItem>
                 <MenuItem onClick={handleProfile}>
                   <Person sx={{ mr: 1 }} /> プロフィール

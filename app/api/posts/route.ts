@@ -62,6 +62,12 @@ export async function GET(request: NextRequest) {
     const hasMore = posts.length > limit;
     const hasNextPage = hasMore;
     const resultPosts = hasMore ? posts.slice(0, limit) : posts;
+    
+    // commentsCountフィールドが存在しない場合は0を設定
+    const postsWithCommentCount = resultPosts.map(post => ({
+      ...post,
+      commentsCount: post.commentsCount || 0
+    }));
 
     // ページネーション情報
     const totalPages = Math.ceil(totalCount / limit);
@@ -69,12 +75,12 @@ export async function GET(request: NextRequest) {
 
     // カーソルベースの場合
     if (cursor) {
-      const nextCursor = hasMore ? resultPosts[resultPosts.length - 1]._id.toString() : null;
+      const nextCursor = hasMore ? postsWithCommentCount[postsWithCommentCount.length - 1]._id.toString() : null;
       
       return NextResponse.json({
         success: true,
-        data: resultPosts,
-        posts: resultPosts,
+        data: postsWithCommentCount,
+        posts: postsWithCommentCount,
         nextCursor,
         hasMore,
         pagination: {
@@ -91,7 +97,7 @@ export async function GET(request: NextRequest) {
     // 通常のページネーション
     return NextResponse.json({
       success: true,
-      data: resultPosts,
+      data: postsWithCommentCount,
       pagination: {
         currentPage: page,
         totalPages,
