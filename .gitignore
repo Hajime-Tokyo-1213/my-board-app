@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup and duplicate node_modules
+node_modules 2/
+node_modules 3/
+node_modules.backup/
+
+# serena cache files
+.serena/cache/
+
+# test reports
+playwright-report/
+test-output*.log
+
+# temporary and test files
+cookies*.txt
+test-*.js
+*.backup.js
+
+# build logs
+build.log

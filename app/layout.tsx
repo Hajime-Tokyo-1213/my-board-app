@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import ThemeRegistry from "@/src/app/registry";
 import SessionWrapper from "@/components/SessionProvider";
-import InstallPrompt from "@/components/InstallPrompt";
-import OfflineIndicator from "@/components/OfflineIndicator";
-import NotificationPermission from "@/components/NotificationPermission";
-
 import { Providers } from "./providers";
+import {
+  InstallPrompt,
+  NotificationPermission,
+  OfflineIndicator,
+} from "@/components/ClientOnlyComponents";
 export const metadata: Metadata = {
   title: "会員制掲示板",
   description: "会員限定の掲示板システム",
